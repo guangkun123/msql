@@ -1,4 +1,4 @@
-README for mSQL version 1.0 Patch 16	 7 Jul 1996
+README for mSQL version 1.0 Beta Patch 5	15 Feb 1995
 ----------------------------------------------------------------------------
 
 
@@ -10,35 +10,15 @@ Solaris 2.3, Ultrix 4.3, Linux, and OSF/1 (cc not gcc).  That said, it
 should "autoconf" and build on most BSD derived systems, SVR4 based 
 systems or POSIX O/S's (that should cover most of them).  It has been
 reported that it works out-of-the-box on HP-UX, NeXT, SCO, Sequent,
-Cray, Tandem, *BSD  and a few others.  I haven't tested these so buyer beware.
+Cray, Tandem and a few others.  I haven't tested these so buyer beware.
 
 
-License
----------
+Conscienceware
+--------------
 
-mSQL has been released in the past under terms known as "conscience-ware",
-the basic concept of which was that companies that used the software
-could contribute a small ammount to the continued development of the
-software without any strict rules being placed upon such "donations".
-Although the concept sounds fair, it failed badly with only 3 contributions
-being made from over 3,600 copies of mSQL-1.0.5 that were ftp'ed from my
-machine alone.  Over 1,000 of those copies went to commercial organisations
-and I receive many questions a day from companies using mSQL behind
-their WWW servers etc who are looking for free support.
-
-In an attempt to balance this out and allow me to devote some time to
-mSQL (rather than other persuits that I do to generate an income), mSQL
-is now a commercial product.  I still believe in free software over the 
-Internet and cooperation in research so the new license is designed not to 
-hurt Universities, research groups and other people that _should_ have free
-access to software.  Commercial organisations that are using this so
-that they don't have to buy an Oracle or an Ingres will now have to buy
-mSQL (at a minute fraction of the cost of one of the commercial
-offerings).
-
-Please read the doc/License file to see if you are required to register
-your copy.  An invoice is included in both Postscript and ASCII format
-to ease the generation of payments.
+mSQL is now being released as "conscienceware".  Please read the file
+doc/Conscienceware for an understanding of what it is and how you can
+help support the development of mSQL.
 
 
 Installation
@@ -53,13 +33,8 @@ $(TOP)/targets/Solaris-2.3-Sparc )
 
 Once the target directory has been created, change directory into it and
 run "setup".  That will run autoconf and some other configuration
-scripts.  Some system wide configuraion items, including the language
-for error moessages, are defined in common/site.h so you should probably
-have a look at that file and change anything you feel needs to be
-changed.
-
-Once you've done that, just type make.  You should install the software 
-with "make install" when you're happy with it.  
+scripts.  Once that has completed, just type make.  You should install
+the software with "make install" when you're happy with it.  
 
 The default installation directory is /usr/local/Minerva.  This area is
 shared by all the development of Minerva (including the ESL scripting
@@ -96,6 +71,12 @@ trash.
 
 
 Notes :
+	o  Because this stuff is pretty new, there's a script in the
+	scripts directory that you may want to use to run the server.  It
+	restarts the server if it crashes and mails you a notification
+	of the failure.  It's called run_daemon and may save you some 
+	heart ache.
+
 	o  If you run this on a Cray (what?  you don't have a Y-MP at
 	home? :) you'll have to remove -lsocket and -lx from EXTRA_LIB 
 	in site.mm after you run setup.
@@ -105,49 +86,14 @@ Notes :
 	edit site.mm and set 'CC=gcc -static'
 
 
+If you decide to use mSQL for anything, could you drop me a line.  I'd
+like to keep track of just how many people are using it and what it's
+being used for.  You may also wish to join the mailing list by sending a
+message to msql-list-request@Bond.edu.au.
 
 
-Further Doco
-------------
-
-A set of WWW pages for mSQL are now available in the Hughes
-Technologies web site.  The URL is
-
-	http://Hughes.com.au/
-
-There is also a very complete FAQ maintained by Peter Samuel
-(Peter.Samuel@uniq.com.au) available in both text and HTML formats via 
-FTP from Bond.edu.au in /pub/Minerva/msql
-
-
-Bugs / Problems
----------------
-
-If you find what you think is a bug or you have a problem or question
-you'd like answered, __please__ join the mailing list and ask your
-question there.  My mailbox floweth over.  I am continually getting
-messages to my private mailbox regarding old problems and other matters 
-that have been discussed many times on the mailing list.  It takes a lot
-of time to wade through the 100's of message I receive per week.
-
-You can join the mailing list by sending a message containing just the
-word "subscribe" to 
-
-	msql-list-request@Bunyip.com
-
-If you want to report a bug, please include the following :-
-
-	Include the output of "msqladmin version"
-	Include a dump of a test database using msqldump
-	Include a mSQL script that will show the bug
-
-You should also ensure that you are running the latest (stable) version
-of mSQL before mailing the list as I fix bugs in every version.
-
-
-
-   /   /            /              David J. Hughes       Bambi@Hughes.com.au
-  /___/       ___  /__  ___  ___   Managing Director     Hughes Technologies
- /   / /  /  /  / /  / /__/ /__    Fax: +61 7 3302 2199  http://Hughes.com.au
-/   / /__/  /__/ /  / /__  ___/    _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/
-            __/
+   __                                  David J. Hughes  -  Bambi@Bond.edu.au
+  /  \               /  /   /           http://Bond.edu.au/People/bambi.html
+ /___/ __   _   ____/  /   / _     
+/   \ /  \ / \ /   /  /   / / \  /   Senior Network Programmer, Bond University
+\___/ \__//  / \__/   \__/ /  / /    Qld.   4229   AUSTRALIA    (+61 75 951450)

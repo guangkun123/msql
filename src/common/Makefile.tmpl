@@ -2,10 +2,14 @@
 CC_FLAGS= $(CFLAGS) $(U_INT)
 LINT_FLAGS= $(LINTFLAGS) 
 
+all: ../lib/libmisc.a 
 all: debug.o
-all: tmpnam.o
-all: strlib.o
 
-!object strlib.o strlib.c
+!library libmisc.a strlib.c
 !object debug.o debug.c
-!object tmpnam.o tmpnam.c
+
+../lib/libmisc.a: libmisc.a
+	rm -f ../lib/libmisc.a 
+	ln -s ../common/libmisc.a ../lib/libmisc.a
+	$(RANLIB) ../lib/libmisc.a
+

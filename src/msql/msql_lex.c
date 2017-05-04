@@ -2,8 +2,7 @@
 **	msql_lex.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -147,7 +146,6 @@ static symtab_t symtab[16][16] = {
 		{ "primary",	token(PRIMARY)},
 		{ "smallint",	token(INT)},
 		{ "real",	token(REAL)},
-		{ "as",		token(AS)},
 		{ 0,		0}
 	},
 	{ /* 5 */
@@ -157,7 +155,6 @@ static symtab_t symtab[16][16] = {
 		{ 0,		0}
 	},
 	{ /* 6 */
-		{ "NULL",	token(NULLSYM)},
 		{ 0,		0}
 	},
 	{ /* 7 */
@@ -205,7 +202,6 @@ static symtab_t symtab[16][16] = {
 	},
 	{ /* 15 */
 		{ "desc",	token(DESC)},
-		{ "limit",	token(LIMIT)},
 		{ 0,		0}
 	}
 };
@@ -329,7 +325,6 @@ u_char *readTextLiteral(tok)
 int yylex()
 {
 	REG	u_char	c;
-	REG	u_char	t;
 	int	tokval;
 	static	u_char dummyBuf[2];
 
@@ -379,18 +374,6 @@ int yylex()
 				{
 					state = 5;
 					break;
-				}
-				if (c == '.')
-				{
-					t = yyGet();
-					if ( isdigit(t) ) 
-					{
-						yyUnget();
-						state = 7;
-						break;
-					} 
-					else
-						yyUnget();
 				}
 				if (c == '-' || c == '+')
 				{
@@ -498,15 +481,6 @@ int yylex()
 			/* State 7: Incomplete real number */
 			CASE(7)
 				c = yyGet();
-
-		                /* Analogy Start */
-                                if(c == 'e' || c == 'E')
-                                {
-                                        state = 15;
-                                        break;
-                                }
-                		/* Analogy End   */
- 
 				if (isdigit(c))
 				{
 					state = 7;
@@ -530,11 +504,6 @@ int yylex()
 				if (isdigit(c))
 				{
 					state = 5;
-					break;
-				}
-				if (c == '.')
-				{
-					state = 7;
 					break;
 				}
 				state = 999;
@@ -597,46 +566,6 @@ int yylex()
 					state = 14;
 				}
 				break;
-
-			/* Analogy Start */
-                        /* State 15: Exponent Sign in Scientific Notation */
-                        CASE(15)
-                                c = yyGet();
-                                if(c == '-' || c == '+')
-                                {
-                                      state = 16;
-                                      break;
-                                }
-                                state = 999;
-                                break;
-
-                        /* State 16: Exponent Value-first digit in Scientific 
-			** Notation */
-                        CASE(16)
-                                c = yyGet();
-                                if (isdigit(c))
-                                {
-                                        state = 17;
-                                        break;
-                                }
-                                state = 999;  	/* if no digit, then token 
-						** is unknown */
-                                break;
-
-                        /* State 17: Exponent Value in Scientific Notation */
-                        CASE(17)
-                                c = yyGet();
-                                if (isdigit(c))
-                                {
-                                        state = 17;
-                                        break;
-                                }
-                                state = 8;     	/* At least 1 exponent 
-						** digit was required */
-                                break;
-			/* Analogy End */
-
-
 				
 
 			/* State 999 : Unknown token.  Revert to single char */

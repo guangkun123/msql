@@ -1,0 +1,592 @@
+#
+# This is a "makegen" generated Makefile based on Makefile.tmpl
+#
+# Makegen has been developed as part of Minerva by David J. Hughes
+#
+# ********************   DO NOT EDIT THIS BY HAND   ********************
+#
+
+SHELL=/bin/sh
+
+#
+# Project top directory
+#
+
+TOP=..
+
+
+# Generated automatically from site.mm.in by configure.
+#
+# Site specific configuration
+#
+
+CC= gcc
+LINK= $(CC)
+CPP= gcc -E
+RANLIB= ranlib
+
+YACC= bison -y
+
+SIGLIST= 
+DIRENT= -DHAVE_DIRENT_H -DHAVE_DIRENT
+MMAP= -DHAVE_MMAP
+U_INT= -DHAVE_U_INT
+ROOT_EXEC= -DROOT_EXEC
+ROOT= root
+
+# Top of Minerva install tree
+INST_DIR= /usr/local/Minerva
+
+# Extra libraries if required
+EXTRA_LIB=  -lnsl
+
+# Any other CFlags required
+EXTRA_CFLAGS= -DHAVE_CONFIG_H
+
+# Directory for pid file
+PID_DIR= /var/log
+
+CFLAGS= -g -I$(TOP)/ $(EXTRA_CFLAGS)
+LDLIBS= -L$(TOP)/lib $(EXTRA_LIB)
+
+
+
+CC_FLAGS= $(CFLAGS)
+LD_LIBS= $(LDLIBS)
+
+#
+# Default Makefile Rules
+#
+
+install :: all
+
+depend ::
+
+clean ::
+	rm -f Makefile.full
+
+#
+# Makefile Rules
+#
+
+
+
+CC_FLAGS= $(CFLAGS) -DINST_DIR=\"$(INST_DIR)\" $(SIGLIST) $(DIRENT) $(MMAP) -DPID_DIR=\"$(PID_DIR)\" $(U_INT) $(ROOT_EXEC) -DROOT=\"$(ROOT)\"
+YACC_FLAGS= -d
+LD_LIBS= $(LDLIBS) 
+
+msql_yacc.c : msql_yacc.y
+	@echo ""
+	$(YACC) $(YACC_FLAGS) msql_yacc.y
+	mv y.tab.c msql_yacc.c
+
+msql_yacc.o : msql_yacc.c
+	$(CC) $(CC_FLAGS) -c msql_yacc.c
+
+clean ::
+	rm -f msql_yacc.c y.tab.*
+
+depend ::
+	@touch y.tab.h
+
+
+
+# Make rules for building msql_proc.o
+
+msql_proc.o : msql_proc.c 
+	$(CC) $(CC_FLAGS) -c msql_proc.c
+
+clean ::
+	rm -f msql_proc.o msql_proc.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) msql_proc.c
+
+
+# Make rules for building msqldb.o
+
+msqldb.o : msqldb.c 
+	$(CC) $(CC_FLAGS) -c msqldb.c
+
+clean ::
+	rm -f msqldb.o msqldb.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) msqldb.c
+
+
+# Make rules for building msqld.o
+
+msqld.o : msqld.c 
+	$(CC) $(CC_FLAGS) -c msqld.c
+
+clean ::
+	rm -f msqld.o msqld.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) msqld.c
+
+
+# Make rules for building acl.o
+
+acl.o : acl.c 
+	$(CC) $(CC_FLAGS) -c acl.c
+
+clean ::
+	rm -f acl.o acl.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) acl.c
+
+
+# Make rules for building msql_lex.o
+
+msql_lex.o : msql_lex.c 
+	$(CC) $(CC_FLAGS) -c msql_lex.c
+
+clean ::
+	rm -f msql_lex.o msql_lex.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) msql_lex.c
+
+
+#
+# We don't need an !object call for net.c as net.o is made from the
+# !library call below
+# 
+
+libmsql.o : libmsql.c
+	$(CC) $(CC_FLAGS) -c libmsql.c
+
+clean ::
+	rm -f libmsql.o
+
+depend ::
+
+net.o : net.c
+	$(CC) $(CC_FLAGS) -c net.c
+
+clean ::
+	rm -f net.o
+
+depend ::
+
+all : libmsql.a
+
+libmsql.a :  libmsql.o net.o
+	ar rc libmsql.a  libmsql.o net.o
+	ranlib libmsql.a
+
+clean :: 
+	rm -f libmsql.a
+
+
+all: ../lib/libmsql.a
+
+../lib/libmsql.a : libmsql.a
+	rm -f ../lib/libmsql.a
+	ln -s ../msql/libmsql.a ../lib/libmsql.a
+	$(RANLIB) ../lib/libmsql.a
+
+
+# Make rules for building msqladmin.o
+
+msqladmin.o : msqladmin.c 
+	$(CC) $(CC_FLAGS) -c msqladmin.c
+
+clean ::
+	rm -f msqladmin.o msqladmin.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) msqladmin.c
+
+
+# Make rules for building msqladmin
+
+all : msqladmin
+
+msqladmin : msqladmin.o acl.o libmsql.a ../lib/libmisc.a
+	$(LINK) $(CC_FLAGS) msqladmin.o acl.o libmsql.a ../lib/libmisc.a -o msqladmin $(LD_LIBS) 
+
+clean :: 
+	rm -f msqladmin
+
+
+
+# Make rules for building msql.o
+
+msql.o : msql.c 
+	$(CC) $(CC_FLAGS) -c msql.c
+
+clean ::
+	rm -f msql.o msql.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) msql.c
+
+
+# Make rules for building msql
+
+all : msql
+
+msql : msql.o libmsql.a ../lib/libmisc.a
+	$(LINK) $(CC_FLAGS) msql.o libmsql.a ../lib/libmisc.a -o msql $(LD_LIBS) 
+
+clean :: 
+	rm -f msql
+
+
+
+# Make rules for building msqldump.o
+
+msqldump.o : msqldump.c 
+	$(CC) $(CC_FLAGS) -c msqldump.c
+
+clean ::
+	rm -f msqldump.o msqldump.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) msqldump.c
+
+
+# Make rules for building msqldump
+
+all : msqldump
+
+msqldump : msqldump.o libmsql.a ../lib/libmisc.a
+	$(LINK) $(CC_FLAGS) msqldump.o libmsql.a ../lib/libmisc.a -o msqldump $(LD_LIBS) 
+
+clean :: 
+	rm -f msqldump
+
+
+
+# Make rules for building relshow.o
+
+relshow.o : relshow.c 
+	$(CC) $(CC_FLAGS) -c relshow.c
+
+clean ::
+	rm -f relshow.o relshow.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) relshow.c
+
+
+# Make rules for building relshow
+
+all : relshow
+
+relshow : relshow.o libmsql.a ../lib/libmisc.a
+	$(LINK) $(CC_FLAGS) relshow.o libmsql.a ../lib/libmisc.a -o relshow $(LD_LIBS) 
+
+clean :: 
+	rm -f relshow
+
+
+
+# Make rules for building insert_test.o
+
+insert_test.o : insert_test.c 
+	$(CC) $(CC_FLAGS) -c insert_test.c
+
+clean ::
+	rm -f insert_test.o insert_test.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) insert_test.c
+
+
+# Make rules for building insert_test
+
+all : insert_test
+
+insert_test : insert_test.o libmsql.a ../lib/libmisc.a
+	$(LINK) $(CC_FLAGS) insert_test.o libmsql.a ../lib/libmisc.a -o insert_test $(LD_LIBS) 
+
+clean :: 
+	rm -f insert_test
+
+
+
+# Make rules for building select_test.o
+
+select_test.o : select_test.c 
+	$(CC) $(CC_FLAGS) -c select_test.c
+
+clean ::
+	rm -f select_test.o select_test.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) select_test.c
+
+
+# Make rules for building select_test
+
+all : select_test
+
+select_test : select_test.o libmsql.a ../lib/libmisc.a
+	$(LINK) $(CC_FLAGS) select_test.o libmsql.a ../lib/libmisc.a -o select_test $(LD_LIBS) 
+
+clean :: 
+	rm -f select_test
+
+
+
+# Make rules for building msqld
+
+all : msqld
+
+msqld : msqld.o msql_yacc.o msql_lex.o msql_proc.o net.o msqldb.o acl.o libmsql.a
+	$(LINK) $(CC_FLAGS) msqld.o msql_yacc.o msql_lex.o msql_proc.o net.o msqldb.o acl.o libmsql.a -o msqld $(LD_LIBS) ../common/debug.o -lmisc -lregexp
+
+clean :: 
+	rm -f msqld
+
+
+msqld-clean:
+	rm -f msqld.o msql_yacc.o msql_lex.o msql_proc.o net.o 	msqldb.o 
+
+install ::
+	cp msql $(INST_DIR)/bin/msql
+	chmod 0755 $(INST_DIR)/bin/msql
+install ::
+	cp msqld $(INST_DIR)/bin/msqld
+	chmod 4750 $(INST_DIR)/bin/msqld
+install ::
+	cp msqladmin $(INST_DIR)/bin/msqladmin
+	chmod 0750 $(INST_DIR)/bin/msqladmin
+install ::
+	cp relshow $(INST_DIR)/bin/relshow
+	chmod 0755 $(INST_DIR)/bin/relshow
+install ::
+	cp msqldump $(INST_DIR)/bin/msqldump
+	chmod 0755 $(INST_DIR)/bin/msqldump
+install ::
+	cp libmsql.a $(INST_DIR)/lib/libmsql.a
+	ranlib $(INST_DIR)/lib/libmsql.a
+	chmod 744 $(INST_DIR)/lib/libmsql.a
+install ::
+	cp msql.h $(INST_DIR)/include/msql.h
+	chmod 744 $(INST_DIR)/include/msql.h
+install ::
+	cp sample.acl $(INST_DIR)/msql.acl.sample
+	chmod 700 $(INST_DIR)/msql.acl.sample
+
+lextest :: msql_lex.c
+	$(CC) $(CC_FLAGS) -DDEBUG msql_lex.c -o lextest
+
+
+
+# DO NOT DELETE THIS LINE -- make depend depends on it.
+
+msql_proc.o: /usr/include/stdio.h /usr/include/features.h
+msql_proc.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+msql_proc.o: /usr/include/bits/types.h /usr/include/libio.h
+msql_proc.o: /usr/include/_G_config.h /usr/include/wchar.h
+msql_proc.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+msql_proc.o: /usr/include/bits/stdio_lim.h /usr/include/sys/types.h
+msql_proc.o: /usr/include/sys/time.h /usr/include/bits/time.h
+msql_proc.o: /usr/include/sys/select.h /usr/include/bits/select.h
+msql_proc.o: /usr/include/bits/sigset.h /usr/include/endian.h
+msql_proc.o: /usr/include/bits/endian.h /usr/include/sys/sysmacros.h
+msql_proc.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+msql_proc.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+msql_proc.o: /usr/include/limits.h /usr/include/bits/wordsize.h
+msql_proc.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
+msql_proc.o: /usr/include/linux/limits.h /usr/include/bits/sockaddr.h
+msql_proc.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+msql_proc.o: /usr/include/netinet/in.h /usr/include/stdint.h
+msql_proc.o: /usr/include/bits/in.h /usr/include/bits/byteswap.h
+msql_proc.o: /usr/include/arpa/inet.h /usr/include/signal.h
+msql_proc.o: /usr/include/bits/signum.h /usr/include/bits/siginfo.h
+msql_proc.o: /usr/include/bits/sigaction.h /usr/include/bits/sigcontext.h
+msql_proc.o: /usr/include/asm/sigcontext.h /usr/include/netdb.h
+msql_proc.o: /usr/include/rpc/netdb.h /usr/include/bits/netdb.h
+msql_proc.o: ../common/debug.h ../common/portability.h ../common/config.h
+msql_proc.o: msql_priv.h version.h msql.h y.tab.h
+
+msqldb.o: /usr/include/stdio.h /usr/include/features.h
+msqldb.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+msqldb.o: /usr/include/bits/types.h /usr/include/libio.h
+msqldb.o: /usr/include/_G_config.h /usr/include/wchar.h
+msqldb.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+msqldb.o: /usr/include/bits/stdio_lim.h /usr/include/fcntl.h
+msqldb.o: /usr/include/bits/fcntl.h /usr/include/sys/types.h
+msqldb.o: /usr/include/sys/time.h /usr/include/bits/time.h
+msqldb.o: /usr/include/sys/select.h /usr/include/bits/select.h
+msqldb.o: /usr/include/bits/sigset.h /usr/include/endian.h
+msqldb.o: /usr/include/bits/endian.h /usr/include/sys/sysmacros.h
+msqldb.o: /usr/include/unistd.h /usr/include/bits/posix_opt.h
+msqldb.o: /usr/include/bits/confname.h /usr/include/sys/stat.h
+msqldb.o: /usr/include/bits/stat.h /usr/include/sys/socket.h
+msqldb.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+msqldb.o: /usr/include/bits/socket.h /usr/include/limits.h
+msqldb.o: /usr/include/bits/wordsize.h /usr/include/bits/posix1_lim.h
+msqldb.o: /usr/include/bits/local_lim.h /usr/include/linux/limits.h
+msqldb.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+msqldb.o: /usr/include/asm/sockios.h /usr/include/netinet/in.h
+msqldb.o: /usr/include/stdint.h /usr/include/bits/in.h
+msqldb.o: /usr/include/bits/byteswap.h /usr/include/arpa/inet.h
+msqldb.o: /usr/include/signal.h /usr/include/bits/signum.h
+msqldb.o: /usr/include/bits/siginfo.h /usr/include/bits/sigaction.h
+msqldb.o: /usr/include/bits/sigcontext.h /usr/include/asm/sigcontext.h
+msqldb.o: /usr/include/netdb.h /usr/include/rpc/netdb.h
+msqldb.o: /usr/include/bits/netdb.h /usr/include/sys/mman.h
+msqldb.o: /usr/include/bits/mman.h /usr/include/dirent.h
+msqldb.o: /usr/include/bits/dirent.h ../common/debug.h
+msqldb.o: ../common/portability.h ../common/config.h ../regexp/regexp.h
+msqldb.o: y.tab.h msql_priv.h version.h msql.h
+
+msqld.o: /usr/include/stdio.h /usr/include/features.h
+msqld.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+msqld.o: /usr/include/bits/types.h /usr/include/libio.h
+msqld.o: /usr/include/_G_config.h /usr/include/wchar.h
+msqld.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+msqld.o: /usr/include/bits/stdio_lim.h /usr/include/fcntl.h
+msqld.o: /usr/include/bits/fcntl.h /usr/include/sys/types.h
+msqld.o: /usr/include/sys/time.h /usr/include/bits/time.h
+msqld.o: /usr/include/sys/select.h /usr/include/bits/select.h
+msqld.o: /usr/include/bits/sigset.h /usr/include/endian.h
+msqld.o: /usr/include/bits/endian.h /usr/include/sys/sysmacros.h
+msqld.o: /usr/include/limits.h /usr/include/bits/wordsize.h
+msqld.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
+msqld.o: /usr/include/linux/limits.h /usr/include/sys/stat.h
+msqld.o: /usr/include/bits/stat.h /usr/include/sys/time.h
+msqld.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+msqld.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+msqld.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+msqld.o: /usr/include/asm/sockios.h /usr/include/netinet/in.h
+msqld.o: /usr/include/stdint.h /usr/include/bits/in.h
+msqld.o: /usr/include/bits/byteswap.h /usr/include/arpa/inet.h
+msqld.o: /usr/include/stdlib.h /usr/include/alloca.h ../common/portability.h
+msqld.o: ../common/config.h /usr/include/sys/un.h /usr/include/string.h
+msqld.o: /usr/include/signal.h /usr/include/bits/signum.h
+msqld.o: /usr/include/bits/siginfo.h /usr/include/bits/sigaction.h
+msqld.o: /usr/include/bits/sigcontext.h /usr/include/asm/sigcontext.h
+msqld.o: /usr/include/netdb.h /usr/include/rpc/netdb.h
+msqld.o: /usr/include/bits/netdb.h ../common/site.h ../common/debug.h
+msqld.o: msql_priv.h version.h
+
+acl.o: /usr/include/stdio.h /usr/include/features.h /usr/include/sys/cdefs.h
+acl.o: /usr/include/gnu/stubs.h /usr/include/bits/types.h
+acl.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+acl.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+acl.o: /usr/include/bits/stdio_lim.h /usr/include/sys/types.h
+acl.o: /usr/include/sys/time.h /usr/include/bits/time.h
+acl.o: /usr/include/sys/select.h /usr/include/bits/select.h
+acl.o: /usr/include/bits/sigset.h /usr/include/endian.h
+acl.o: /usr/include/bits/endian.h /usr/include/sys/sysmacros.h
+acl.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+acl.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+acl.o: /usr/include/limits.h /usr/include/bits/wordsize.h
+acl.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
+acl.o: /usr/include/linux/limits.h /usr/include/bits/sockaddr.h
+acl.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+acl.o: /usr/include/netinet/in.h /usr/include/stdint.h /usr/include/bits/in.h
+acl.o: /usr/include/bits/byteswap.h /usr/include/arpa/inet.h
+acl.o: /usr/include/signal.h /usr/include/bits/signum.h
+acl.o: /usr/include/bits/siginfo.h /usr/include/bits/sigaction.h
+acl.o: /usr/include/bits/sigcontext.h /usr/include/asm/sigcontext.h
+acl.o: /usr/include/netdb.h /usr/include/rpc/netdb.h
+acl.o: /usr/include/bits/netdb.h ../common/portability.h ../common/config.h
+acl.o: msql_priv.h version.h
+
+msql_lex.o: /usr/include/stdio.h /usr/include/features.h
+msql_lex.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+msql_lex.o: /usr/include/bits/types.h /usr/include/libio.h
+msql_lex.o: /usr/include/_G_config.h /usr/include/wchar.h
+msql_lex.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+msql_lex.o: /usr/include/bits/stdio_lim.h /usr/include/ctype.h
+msql_lex.o: /usr/include/endian.h /usr/include/bits/endian.h
+msql_lex.o: /usr/include/sys/types.h /usr/include/sys/time.h
+msql_lex.o: /usr/include/bits/time.h /usr/include/sys/select.h
+msql_lex.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+msql_lex.o: /usr/include/sys/sysmacros.h /usr/include/sys/socket.h
+msql_lex.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+msql_lex.o: /usr/include/bits/socket.h /usr/include/limits.h
+msql_lex.o: /usr/include/bits/wordsize.h /usr/include/bits/posix1_lim.h
+msql_lex.o: /usr/include/bits/local_lim.h /usr/include/linux/limits.h
+msql_lex.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+msql_lex.o: /usr/include/asm/sockios.h /usr/include/netinet/in.h
+msql_lex.o: /usr/include/stdint.h /usr/include/bits/in.h
+msql_lex.o: /usr/include/bits/byteswap.h /usr/include/arpa/inet.h
+msql_lex.o: ../common/portability.h ../common/config.h msql_priv.h version.h
+msql_lex.o: y.tab.h
+
+msqladmin.o: /usr/include/stdio.h /usr/include/features.h
+msqladmin.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+msqladmin.o: /usr/include/bits/types.h /usr/include/libio.h
+msqladmin.o: /usr/include/_G_config.h /usr/include/wchar.h
+msqladmin.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+msqladmin.o: /usr/include/bits/stdio_lim.h /usr/include/sys/types.h
+msqladmin.o: /usr/include/sys/time.h /usr/include/bits/time.h
+msqladmin.o: /usr/include/sys/select.h /usr/include/bits/select.h
+msqladmin.o: /usr/include/bits/sigset.h /usr/include/endian.h
+msqladmin.o: /usr/include/bits/endian.h /usr/include/sys/sysmacros.h
+msqladmin.o: /usr/include/fcntl.h /usr/include/bits/fcntl.h
+msqladmin.o: /usr/include/dirent.h /usr/include/bits/dirent.h
+msqladmin.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
+msqladmin.o: /usr/include/linux/limits.h version.h msql.h ../common/site.h
+msqladmin.o: ../common/config.h ../common/portability.h
+
+msql.o: /usr/include/stdio.h /usr/include/features.h /usr/include/sys/cdefs.h
+msql.o: /usr/include/gnu/stubs.h /usr/include/bits/types.h
+msql.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+msql.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+msql.o: /usr/include/bits/stdio_lim.h /usr/include/sys/types.h
+msql.o: /usr/include/sys/time.h /usr/include/bits/time.h
+msql.o: /usr/include/sys/select.h /usr/include/bits/select.h
+msql.o: /usr/include/bits/sigset.h /usr/include/endian.h
+msql.o: /usr/include/bits/endian.h /usr/include/sys/sysmacros.h
+msql.o: /usr/include/fcntl.h /usr/include/bits/fcntl.h
+msql.o: ../common/portability.h ../common/config.h msql.h
+
+msqldump.o: /usr/include/stdio.h /usr/include/features.h
+msqldump.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+msqldump.o: /usr/include/bits/types.h /usr/include/libio.h
+msqldump.o: /usr/include/_G_config.h /usr/include/wchar.h
+msqldump.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+msqldump.o: /usr/include/bits/stdio_lim.h ../common/portability.h
+msqldump.o: ../common/config.h msql.h
+
+relshow.o: /usr/include/stdio.h /usr/include/features.h
+relshow.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+relshow.o: /usr/include/bits/types.h /usr/include/libio.h
+relshow.o: /usr/include/_G_config.h /usr/include/wchar.h
+relshow.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+relshow.o: /usr/include/bits/stdio_lim.h /usr/include/sys/types.h
+relshow.o: /usr/include/sys/time.h /usr/include/bits/time.h
+relshow.o: /usr/include/sys/select.h /usr/include/bits/select.h
+relshow.o: /usr/include/bits/sigset.h /usr/include/endian.h
+relshow.o: /usr/include/bits/endian.h /usr/include/sys/sysmacros.h
+relshow.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+relshow.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+relshow.o: /usr/include/limits.h /usr/include/bits/wordsize.h
+relshow.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
+relshow.o: /usr/include/linux/limits.h /usr/include/bits/sockaddr.h
+relshow.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+relshow.o: /usr/include/netinet/in.h /usr/include/stdint.h
+relshow.o: /usr/include/bits/in.h /usr/include/bits/byteswap.h
+relshow.o: /usr/include/arpa/inet.h /usr/include/signal.h
+relshow.o: /usr/include/bits/signum.h /usr/include/bits/siginfo.h
+relshow.o: /usr/include/bits/sigaction.h /usr/include/bits/sigcontext.h
+relshow.o: /usr/include/asm/sigcontext.h /usr/include/netdb.h
+relshow.o: /usr/include/rpc/netdb.h /usr/include/bits/netdb.h
+relshow.o: ../common/portability.h ../common/config.h msql_priv.h version.h
+relshow.o: msql.h
+
+insert_test.o: /usr/include/stdio.h /usr/include/features.h
+insert_test.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+insert_test.o: /usr/include/bits/types.h /usr/include/libio.h
+insert_test.o: /usr/include/_G_config.h /usr/include/wchar.h
+insert_test.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+insert_test.o: /usr/include/bits/stdio_lim.h msql.h
+
+select_test.o: /usr/include/stdio.h /usr/include/features.h
+select_test.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+select_test.o: /usr/include/bits/types.h /usr/include/libio.h
+select_test.o: /usr/include/_G_config.h /usr/include/wchar.h
+select_test.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+select_test.o: /usr/include/bits/stdio_lim.h msql.h

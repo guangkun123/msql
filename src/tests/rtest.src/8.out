@@ -2,105 +2,11 @@
 Welcome to the miniSQL monitor.  Type \h for help.
 
 
-mSQL >     -> 
-Query buffer
-------------
-
-insert into test2 (user, fullname) values ('fred','Fred Smith') 
-[continue]
-    -> 
-Query OK.
-
-
-
-
 mSQL >     ->     ->     ->     ->     -> 
 Query buffer
 ------------
-select distinct test2.user, test.age
-        from test2,test
-        where test2.user = test.user
-        order by test2.user
 
-[continue]
-    -> 
-Query OK.
-
-3 rows matched.
-
- +------------+----------+
- | user       | age      |
- +------------+----------+
- | Bambi      | 26       |
- | fred       | 31       |
- | paulp      | 25       |
- +------------+----------+
-
-
-
-mSQL >     ->     ->     ->     -> 
-Query buffer
-------------
-select distinct test2.fullname, test.age
-        from test2,test
-        where test.age > 20
-
-[continue]
-    -> 
-Query OK.
-
-15 rows matched.
-
- +--------------------------------+----------+
- | fullname                       | age      |
- +--------------------------------+----------+
- | Paul Pyyvaara                  | 26       |
- | Paul Pyyvaara                  | 25       |
- | Paul Pyyvaara                  | 31       |
- | David J. Hughes                | 26       |
- | David J. Hughes                | 25       |
- | David J. Hughes                | 31       |
- | Fred O'Niell                   | 26       |
- | Fred O'Niell                   | 25       |
- | Fred O'Niell                   | 31       |
- | NULL                           | 26       |
- | NULL                           | 25       |
- | NULL                           | 31       |
- | Fred Smith                     | 26       |
- | Fred Smith                     | 25       |
- | Fred Smith                     | 31       |
- +--------------------------------+----------+
-
-
-
-mSQL >     ->     ->     ->     ->     ->     -> 
-Query buffer
-------------
-select distinct test2.user, test2.fullname, test.age
-        from test2,test
-        where test2.user like 'B%'
-        order by test2.user, test.age
-
-[continue]
-    -> 
-Query OK.
-
-3 rows matched.
-
- +------------+--------------------------------+----------+
- | user       | fullname                       | age      |
- +------------+--------------------------------+----------+
- | Bambi      | David J. Hughes                | 25       |
- | Bambi      | David J. Hughes                | 26       |
- | Bambi      | David J. Hughes                | 31       |
- +------------+--------------------------------+----------+
-
-
-
-mSQL >     ->     ->     ->     ->     ->     -> 
-Query buffer
-------------
-select distinct test2.fullname, test.age
+select test2.fullname, test.age
         from test2,test
         where test2.user = test.user
         order by test2.fullname
@@ -109,19 +15,18 @@ select distinct test2.fullname, test.age
     -> 
 Query OK.
 
-4 rows matched.
+3 rows matched.
 
  +--------------------------------+----------+
  | fullname                       | age      |
  +--------------------------------+----------+
  | David J. Hughes                | 26       |
  | Fred O'Niell                   | 31       |
- | Fred Smith                     | 31       |
- | Paul Pyyvaara                  | 25       |
+ | Paul Pyyvaara                  | 26       |
  +--------------------------------+----------+
 
 
 
-mSQL >     ->     ->     -> 
+mSQL >     -> 
 Bye!
 

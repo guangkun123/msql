@@ -1,23 +1,14 @@
-#
-# Dummy Makefile used with makegen.
-#
-# NOTE : The TOP variable must be set to reflect the top of the
-# src tree (either relative or absolute)
-#
 
-TOP=..
-TARGETS= all install clean lextest
+SRCS= include.c main.c parse.c pr.c cppsetup.c ifparser.c
+OBJS= include.o main.o parse.o pr.o cppsetup.o ifparser.o
 
-$(TARGETS) :: Makefile.full
-
-$(TARGETS) ::
-	@$(MAKE) -f Makefile.full $@
-
-Makefile.full :: $(TOP)/site.mm Makefile.tmpl
-	@$(TOP)/makegen/makegen $(TOP) ;\
-	echo "Depending ....." ;\
-	echo >> Makefile.full ;\
-	$(MAKE) -f Makefile.full depend ;\
-	echo "Done."
+CFLAGS= -g -DOBJSUFFIX=\".o\" -DINCLUDEDIR=\"/usr/include\"
 
 
+all: makedepend
+
+makedepend : $(OBJS)
+	$(CC) -o makedepend $(OBJS)
+
+clean :
+	rm -f core $(OBJS) makedepend

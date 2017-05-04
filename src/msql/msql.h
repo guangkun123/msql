@@ -2,8 +2,7 @@
 **	msql.h	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -16,12 +15,6 @@
 **
 */
 
-
-#if defined(__STDC__) || defined(__cplusplus)
-#  define __ANSI_PROTO(x)	x
-#else
-#  define __ANSI_PROTO(x)	()
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,6 +59,22 @@ typedef struct result_s {
 #define	msqlNumFields(res) res->numFields
 
 
+
+#ifdef NOTDEF
+	extern	char msqlErrMsg[];
+	int	msqlQuery();
+	int	msqlClose();
+	int	msqlSelectDB();
+	int	msqlConnect();
+	m_row	msqlFetchRow();
+	m_field	*msqlFetchField();
+	m_result *msqlListDBs();
+	m_result *msqlListTables();
+	m_result *msqlListFields();
+	m_result *msqlStoreResult();
+#endif
+
+
 #define INT_TYPE	1
 #define CHAR_TYPE	2
 #define REAL_TYPE	3
@@ -84,25 +93,25 @@ typedef struct result_s {
 */
 #ifndef _MSQL_SERVER_SOURCE
 	extern  char msqlErrMsg[];
-	int 	msqlConnect __ANSI_PROTO((char *));
-	int 	msqlSelectDB __ANSI_PROTO((int, char*));
-	int 	msqlQuery __ANSI_PROTO((int, char*));
-	int 	msqlCreateDB __ANSI_PROTO((int, char*));
-	int 	msqlDropDB __ANSI_PROTO((int, char*));
-	int 	msqlShutdown __ANSI_PROTO((int));
-	int 	msqlReloadAcls __ANSI_PROTO((int));
+	int 	msqlConnect();
+	int 	msqlSelectDB();
+	int 	msqlQuery();
+	int 	msqlCreateDB();
+	int 	msqlDropDB();
+	int 	msqlShutdown();
+	int 	msqlReloadAcls();
 	int 	msqlGetProtoInfo();
 	char 	*msqlGetServerInfo();
 	char 	*msqlGetHostInfo();
-	void	msqlClose __ANSI_PROTO((int));
-	void 	msqlDataSeek __ANSI_PROTO((m_result*, int));
-	void 	msqlFieldSeek __ANSI_PROTO((m_result*, int));
-	void 	msqlFreeResult __ANSI_PROTO((m_result*));
-        m_row   msqlFetchRow __ANSI_PROTO((m_result*));
-	m_field	*msqlFetchField __ANSI_PROTO((m_result *));
-	m_result *msqlListDBs __ANSI_PROTO((int));
-	m_result *msqlListTables __ANSI_PROTO((int));
-	m_result *msqlListFields __ANSI_PROTO((int, char*));
+	void	msqlClose();
+	void 	msqlDataSeek();
+	void 	msqlFieldSeek();
+	void 	msqlFreeResult();
+        m_row   msqlFetchRow();
+	m_field	*msqlFetchField();
+	m_result *msqlListDBs();
+	m_result *msqlListTables();
+	m_result *msqlListFields();
 	m_result *msqlStoreResult();
 #endif
 

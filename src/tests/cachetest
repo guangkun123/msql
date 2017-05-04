@@ -7,41 +7,15 @@
 #
 #							bambi
 
-CREATE1="create table test1 ( name char(40) primary key, num int)"
+CREATE1="create table test1 ( name char(40), num int)"
 CREATE2="create table test2 ( name char(40), num int)"
-CREATE3="create table test3 ( name char(40), num int primary key)"
-CREATE4="create table test4 ( name char(40), num int)"
-CREATE5="create table test5 ( name char(40) primary key, num int)"
-CREATE6="create table test6 ( name char(40), num int)"
-CREATE7="create table test7 ( name char(40), num int primary key)"
-CREATE8="create table test8 ( name char(40), num int)"
-CREATE9="create table test9 ( name char(40) primary key, num int)"
-CREATE10="create table test10 ( name char(40), num int)"
+CREATE3="create table test3 ( name char(40), num int)"
 DROP1="drop table test1"
 DROP2="drop table test2"
 DROP3="drop table test3"
-DROP4="drop table test4"
-DROP5="drop table test5"
-DROP6="drop table test6"
-DROP7="drop table test7"
-DROP8="drop table test8"
-DROP9="drop table test9"
-DROP10="drop table test10"
-INSERT1="insert into test1 values ('Test1',1)"
-INSERT2="insert into test2 values ('Test2',2)"
-INSERT3="insert into test3 values ('Test3',3)"
-INSERT4="insert into test4 values ('Test4',4)"
-INSERT5="insert into test5 values ('Test5',5)"
-INSERT6="insert into test6 values ('Test6',6)"
-INSERT7="insert into test7 values ('Test7',7)"
-INSERT8="insert into test8 values ('Test8',8)"
-INSERT9="insert into test9 values ('Test9',9)"
-INSERT10="insert into test10 values ('Test10',10)"
 
-MSQL=/usr/local/Minerva/bin/msql
-NUM_CYCLES=40
+NUM_CYCLES=20
 COUNT=0
-INDEX=1
 DB=$1
 
 if test "$DB." = "."
@@ -52,52 +26,21 @@ then
         exit 1
 fi
 
-(
-	echo	"$DROP1 \p\g"
-	echo	"$DROP2 \p\g"
-	echo	"$DROP3 \p\g"
-	echo	"$DROP4 \p\g"
-	echo	"$DROP5 \p\g"
-	echo	"$DROP6 \p\g"
-	echo	"$DROP7 \p\g"
-	echo	"$DROP8 \p\g"
-	echo	"$DROP9 \p\g"
-	echo	"$DROP10 \p\g"
+while test $COUNT -lt $NUM_CYCLES
+do
+        echo "$DROP2 \p\g" | (../msql/msql $DB)
+        echo "$CREATE1 \p\g" | (../msql/msql $DB)
+	../msql/relshow $DB test1 > /dev/null
+        echo "$DROP3 \p\g" | (../msql/msql $DB)
+        echo "$CREATE2 \p\g" | (../msql/msql $DB)
+	../msql/relshow $DB test2 > /dev/null
+        echo "$DROP1 \p\g" | (../msql/msql $DB)
+        echo "$CREATE3 \p\g" | (../msql/msql $DB)
+	../msql/relshow $DB test3 > /dev/null
+	COUNT=`expr $COUNT + 1`
+done
 
-	echo	"$CREATE1 \p\g"
-	echo	"$CREATE2 \p\g"
-	echo	"$CREATE3 \p\g"
-	echo	"$CREATE4 \p\g"
-	echo	"$CREATE5 \p\g"
-	echo	"$CREATE6 \p\g"
-	echo	"$CREATE7 \p\g"
-	echo	"$CREATE8 \p\g"
-	echo	"$CREATE9 \p\g"
-	echo	"$CREATE10 \p\g"
+echo "$DROP1 \p\g" | (../msql/msql $DB)
+echo "$DROP2 \p\g" | (../msql/msql $DB)
+echo "$DROP3 \p\g" | (../msql/msql $DB)
 
-	echo	"$INSERT1 \p\g"
-	echo	"$INSERT2 \p\g"
-	echo	"$INSERT3 \p\g"
-	echo	"$INSERT4 \p\g"
-	echo	"$INSERT5 \p\g"
-	echo	"$INSERT6 \p\g"
-	echo	"$INSERT7 \p\g"
-	echo	"$INSERT8 \p\g"
-	echo	"$INSERT9 \p\g"
-	echo	"$INSERT10 \p\g"
-
-	while test $COUNT -lt $NUM_CYCLES
-	do
-		echo "select * from test1 \p\g"
-		echo "select * from test5 \p\g"
-		echo "select * from test2 \p\g"
-		echo "select * from test6 \p\g"
-		echo "select * from test3 \p\g"
-		echo "select * from test7 \p\g"
-		echo "select * from test4 \p\g"
-		echo "select * from test8 \p\g"
-		echo "select * from test10 \p\g"
-		echo "select * from test9 \p\g"
-		COUNT=`expr $COUNT + 1`
-	done
-) | ${MSQL} $DB

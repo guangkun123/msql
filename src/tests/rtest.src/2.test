@@ -4,21 +4,8 @@ insert into test(user,age,phone)values( 'Bambi',26,'(075) 951450')\p\g
 insert into test(user,age,phone)values( 'paulp',25,'(075) 951412')\p\g
 insert into test(user,age,phone)values( 'fred',31,'(075) 951431')\p\g
 
-insert into test(user,age,phone)values( 'dummy1',99,'99')\p\g
-insert into test(user,age,phone)values( 'dummy2',97,'97')\p\g
-insert into test(user,age,phone)values( 'dummy3',95,'95')\p\g
-insert into test(user,age,phone)values( 'dummy4',93,'93')\p\g
-insert into test(user,age,phone)values( 'dummy5',91,'91')\p\g
-insert into test(user,age,phone)values( 'dummy6',89,'89')\p\g
-insert into test(user,age,phone)values( 'dummy7',87,'87')\p\g
-
-insert into test(user,age,phone)values( 'fred',31,'(075) 951431')\p\g
-insert into test(user,age,phone)values( NULL,31,'(075) 951431')\p\g
-
 insert into test2 (user, fullname) values ('paulp','Paul Pyyvaara') \p\g
 insert into test2 (user, fullname) values ('Bambi','David J. Hughes') \p\g
 insert into test2 (user, fullname) values ('fred','Fred O\'Niell') \p\g
-insert into test2 (user, fullname) values (NULL,'Nobody') \p\g
-insert into test2 (user, fullname) values ('Nobody',NULL) \p\g
 
 

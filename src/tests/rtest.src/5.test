@@ -1,16 +1,9 @@
-# 
-# Test the delete code
-#
+# Do some lookups (one wildcard,one keyed, one non-keyed, and one regexp)
 
-delete from test where user = 'dummy7'\p\g
-select * from test\p\g
+select phone from test where user = 'Bambi'\p\g
 
-delete from test where age = 92\p\g
-select * from test\p\g
+select * from test2 \p\g
 
-delete from test where age > 80 and age < 95\p\g
-select * from test\p\g
+select * from test where phone = '(075) 951412' \p\g
 
-delete from test where user like  '%umm%'\p\g
-select * from test\p\g
-
+select * from test where user like '%am%' \p\g

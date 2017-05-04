@@ -1,0 +1,28 @@
+Minerva is an extensible network management environment I'm developing
+as part of my Ph.D.  Although the primary goal has been systems and
+network management, a few strange paths have been taken on the way.  The
+two most notable wanderings have been the development of ESL (a C styled
+scripting language offering snmp support and some other pretty funky stuff)
+and Mini SQL (an implementation of a subset of ANSI SQL in a server that
+is quite fast and uses very little memory).
+
+You may be interested in the other developments of Minerva.  For
+example, if you are reading this as part of the mSQL distribution, you
+may want to grab a copy of ESL because there is an ESL version of the
+mSQL API (i.e. SQL database access from your scripts).  
+
+The other bits'n'pieces, as well as papers on Minerva itself, are
+available from :-
+
+	Hostname	: Bond.edu.au   ( 131.244.1.1 )
+	Path		: /pub/Minerva
+
+You can also drop me a line if you like.
+
+
+   __                                  David J. Hughes  -  Bambi@Bond.edu.au
+  /  \               /  /   /           http://Bond.edu.au/People/bambi.html
+ /___/ __   _   ____/  /   / _     
+/   \ /  \ / \ /   /  /   / / \  /   Senior Network Programmer, Bond University
+\___/ \__//  / \__/   \__/ /  / /    Qld.   4229   AUSTRALIA    (+61 75 951450)
+

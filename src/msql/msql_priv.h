@@ -2,8 +2,7 @@
 **	msql_priv.h	- Private (internal) definitions
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -17,11 +16,6 @@
 
 #include "version.h"
 
-#ifdef NEW_DB
-#  include <limits.h>
-#  include <db.h>
-#endif
-
 
 /***************************************************************************
 *	Configuration parameters 
@@ -29,10 +23,10 @@
 
 
 
-#define MAX_FIELDS	75		/* Max fields per query */
+#define MAX_FIELDS	40		/* Max fields per query */
 #define MAX_CON		24		/* Max connections */
 #define BUF_SIZE	(256*1024)	/* Read buf size if no mmap() */
-#define NAME_LEN	19		/* Field/table name length */
+#define NAME_LEN	20		/* Field/table name length */
 #define	PKT_LEN		(32*1024)	/* Max size of client/server packet */
 #define	CACHE_SIZE	8		/* Size of table cache */
 
@@ -49,8 +43,8 @@
 ** Identifier format.  Multi-part to enable stuff like "emp.name"
 */
 typedef struct ident_s {
-	char	seg1[NAME_LEN + 2],
-		seg2[NAME_LEN + 2];
+	char	seg1[NAME_LEN],
+		seg2[NAME_LEN];
 } ident_t;
 
 
@@ -70,18 +64,13 @@ typedef struct val_s {
 } val_t;
 
 
-typedef struct tname_s {
-	char	name[NAME_LEN + 2],
-		cname[NAME_LEN + 2];
-	struct	tname_s *next;
-} tname_t;
 
 /* 
 ** Internal field list element
 */
 typedef struct field_ps {		
-	char	table[NAME_LEN + 1],
-		name[NAME_LEN + 1];
+	char	table[NAME_LEN],
+		name[NAME_LEN];
 	val_t 	*value;
 	int	type,
 		length,
@@ -96,8 +85,8 @@ typedef struct field_ps {
 ** Where clause list element 
 */
 typedef struct cond_s {			
-	char	table[NAME_LEN + 2],
-		name[NAME_LEN + 2];
+	char	table[NAME_LEN + 1],
+		name[NAME_LEN + 1];
 	val_t 	*value;
 	int	op,
 		bool,
@@ -109,17 +98,17 @@ typedef struct cond_s {
 
 
 typedef struct tlist_s {
-	char	name[NAME_LEN + 2];
+	char	name[NAME_LEN + 1];
 	struct	tlist_s *next;
 } tlist_t;
 
 
 /* 
-** Order clause list element 
+** Order clause list element  (not used as yet!)
 */
 typedef struct order_s {		
-	char	table[NAME_LEN + 2],
-		name[NAME_LEN + 2];
+	char	table[NAME_LEN + 1],
+		name[NAME_LEN + 1];
 	int	dir,
 		type,
 		length;
@@ -133,11 +122,10 @@ typedef struct order_s {
 ** Table cache entry struct 
 */
 typedef struct cache_s {		
-	char	DB[NAME_LEN + 2],
-		cname[NAME_LEN + 2],
-		table[NAME_LEN + 2],
-		resInfo[4 * (NAME_LEN+1)]; /* used for debugging info */
-	u_char	*rowBuf,
+	char	DB[NAME_LEN + 1],
+		table[NAME_LEN + 1],
+		resInfo[4 * NAME_LEN], /* used for debugging info */
+		*rowBuf,
 		*keyBuf;
 	int	age,
 		stackFD,
@@ -146,12 +134,7 @@ typedef struct cache_s {
 		rowLen,
 		keyLen,
 		result;
-	u_int	numRows;
 	field_t	*def;
-
-#ifdef	NEW_DB
-	DB	*dbp;
-#endif
 
 #ifdef	HAVE_MMAP
 	int	remapData,
@@ -207,8 +190,7 @@ typedef struct cinfo_s {
 
 extern	int	command,
 		notnullflag,
-		keyflag,
-		msqlSelectLimit;
+		keyflag;
 extern	char	*arrayLen;
 extern	cond_t	*condHead;
 extern	field_t	*fieldHead;
@@ -298,7 +280,7 @@ static char *blockTags[] = {
 
 
 
-int writePkt();
+void writePkt();
 int readPkt();
 
 
@@ -307,27 +289,3 @@ int readPkt();
 extern	char	*msqlHomeDir;
 
 #endif
-
-
-
-/*
-** Inline definitions
-*/
-
-/* inlined, unaligned, 4-byte copy */
-#define bcopy4(s,d) \
-      ((((unsigned char *)d)[3] = ((unsigned char *)s)[3]), \
-       (((unsigned char *)d)[2] = ((unsigned char *)s)[2]), \
-       (((unsigned char *)d)[1] = ((unsigned char *)s)[1]), \
-       (((unsigned char *)d)[0] = ((unsigned char *)s)[0]))
-/* inlined, unaligned, 8-byte copy */
-#define bcopy8(s,d) \
-      ((((unsigned char *)d)[7] = ((unsigned char *)s)[7]), \
-       (((unsigned char *)d)[6] = ((unsigned char *)s)[6]), \
-       (((unsigned char *)d)[5] = ((unsigned char *)s)[5]), \
-       (((unsigned char *)d)[4] = ((unsigned char *)s)[4]), \
-       (((unsigned char *)d)[3] = ((unsigned char *)s)[3]), \
-       (((unsigned char *)d)[2] = ((unsigned char *)s)[2]), \
-       (((unsigned char *)d)[1] = ((unsigned char *)s)[1]), \
-       (((unsigned char *)d)[0] = ((unsigned char *)s)[0]))
-

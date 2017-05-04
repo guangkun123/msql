@@ -2,86 +2,38 @@
 Welcome to the miniSQL monitor.  Type \h for help.
 
 
-mSQL >     ->     ->     ->     ->     -> 
+mSQL >     -> 
 Query buffer
 ------------
 
-
-select test2.fullname, test.age
-        from test2,test
-        where test.age > 20 
-
+update test set age = 26 where user = 'paulp'
 [continue]
     -> 
 Query OK.
 
-12 rows matched.
-
- +--------------------------------+----------+
- | fullname                       | age      |
- +--------------------------------+----------+
- | Paul Pyyvaara                  | 26       |
- | Paul Pyyvaara                  | 25       |
- | Paul Pyyvaara                  | 31       |
- | David J. Hughes                | 26       |
- | David J. Hughes                | 25       |
- | David J. Hughes                | 31       |
- | Fred O'Niell                   | 26       |
- | Fred O'Niell                   | 25       |
- | Fred O'Niell                   | 31       |
- | NULL                           | 26       |
- | NULL                           | 25       |
- | NULL                           | 31       |
- +--------------------------------+----------+
-
-
-
-mSQL >     ->     ->     ->     ->     -> 
-Query buffer
-------------
-select test2.fullname, test.age
-        from test2,test
-        where test2.user like 'B%'
-
-[continue]
-    -> 
-Query OK.
-
-3 rows matched.
-
- +--------------------------------+----------+
- | fullname                       | age      |
- +--------------------------------+----------+
- | David J. Hughes                | 26       |
- | David J. Hughes                | 25       |
- | David J. Hughes                | 31       |
- +--------------------------------+----------+
-
-
-
-mSQL >     ->     ->     ->     ->     -> 
-Query buffer
-------------
-select test2.fullname, test.age
-        from test2,test
-        where test2.user = test.user
-
-[continue]
-    -> 
-Query OK.
-
-3 rows matched.
-
- +--------------------------------+----------+
- | fullname                       | age      |
- +--------------------------------+----------+
- | Paul Pyyvaara                  | 25       |
- | David J. Hughes                | 26       |
- | Fred O'Niell                   | 31       |
- +--------------------------------+----------+
 
 
 
 mSQL >     -> 
+Query buffer
+------------
+select * from test 
+[continue]
+    -> 
+Query OK.
+
+3 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 26       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ +------------+----------+----------------------+
+
+
+
+mSQL > 
 Bye!
 

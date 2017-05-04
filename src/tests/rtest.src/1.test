@@ -1,5 +1,5 @@
 #
-# Setup the tables for the test.
+# Just setup the tables for the test.
 #
 
 create table test (
@@ -14,5 +14,4 @@ create table test2 (
         user    char(10) not null,
         fullname    char(30)
 ) \p\g
-
 

@@ -1,0 +1,53 @@
+mSQL Scanner Notes
+------------------
+
+The lexical scanner used by mSQL is hand crafted rather than using a
+lex/flex generated scanner.  This has been implemented to firstly avoid
+portability problems with various version of lex and flex and secondly
+to provide greater flexibility.  It understands C styled escape
+conventions within text literals and _should_ handle 8-bit international
+character sets.
+
+Due to the case-insensitive nature of SQL keywords, lex generated
+over 1,500 lines of code including almost 1,600 transition conditions
+The hand crafted scanner is only XXXX lines long and uses only 15 states
+This is due to a simple, case-insensitive keyword lookup mechanism and
+character class matching for state transitions (eg isdigit()).  In
+short, it should be quite fast and a lot more readable and portable than
+the old scanner.
+
+The scanner is a based on a state machine to determine the underlying
+tokens.  The states are defined in the transformation digram below.  The
+sytax used consists of the {State : LoopChars} where State is the state
+number and LoopChars are characters that cause a state loopback.
+Characters that force a transition are shown on the edges as a comma
+delimited list within <> characters. Terminal states are shown as [State
+: Token] indicating the state number and the type of token matched.
+
+
+{0} Start State
+|__<Alpha>__{1:Alpha}__<Num,'_'>__{3:AlphaNum,'_'}__<other>__[4:IDENT]
+|                    |
+|                    |__<other>__[2:KEYWORD or IDENT]
+|
+|
+|__<Num>__{5:Num}__<'.'>__{7:Num}__<other>__[8:REAL_NUM]
+|        ^       |
+|        |       |__<other>__[6:INT_NUM]
+|        |
+|        |__________________
+|                          |
+|__<'-','+'>__{9:}__<Num>__|
+|                 |
+|                 |__<other>__[999:UNMATCHED_CHAR]
+|
+|
+|__<Math>__{10:Math}__<other>__[11:MATH_SYM]
+|
+|
+|__<'"'>__{12:TextString}__<'"'>__[13:TEXT_LITERAL]
+|                        |
+|                        |__<other>__[999:UNMATCHED_CHAR]
+|
+|__<NULL>__[1000:END_OF_INPUT]
+

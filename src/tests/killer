@@ -24,14 +24,13 @@ TMP_FILE="/tmp/msql_test.out"
 RES_FILE="./msql.times"
 
 DB=$1
-NUM_TESTS=1
-NUM_INSERTS=10
-NUM_SELECTS=10
+NUM_TESTS=3
+NUM_INSERTS=100
+NUM_SELECTS=100
 
 CALC="bc -l"
 PID_FILE="/var/adm/msqld.pid"
 
-MSQL=/usr/local/Minerva/bin/msql
 
 
 PROFILE="N"
@@ -96,7 +95,7 @@ fi
 # What sort of /bin/time do we have?
 #
 
-if test `$BIN_TIME /bin/test 2>&1 | wc -l` -gt 1
+if test `$BIN_TIME /bin/true 2>&1 | wc -l` -gt 1
 then
 	echo "$BIN_TIME produces System V styled output."
 	TIME_CALC="(grep -i \"^real\" | awk '{ print \$2 }')"
@@ -125,9 +124,9 @@ echo "Inserting $NUM_INSERTS rows into new keyed table gave :-" >> $RES_FILE
 while test $COUNT -lt $NUM_TESTS
 do
 	echo "Dropping test table"
-	echo "$DROP \p\g" | ($MSQL $DB > /dev/null)
+	echo "$DROP \p\g" | (../msql/msql $DB > /dev/null)
 	echo "Creating keyed table"
-	echo "$CREATE_KEY \p\g" | ($MSQL $DB > /dev/null)
+	echo "$CREATE_KEY \p\g" | (../msql/msql $DB > /dev/null)
 	echo "Inserting $NUM_INSERTS rows into keyed table"
 	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
 	if test $? -ne 0
@@ -164,6 +163,9 @@ echo >> $RES_FILE
 echo >> $RES_FILE
 
 
+
+
+
 #########################################################################
 # Filling a deleted keyed table
 #
@@ -180,7 +182,7 @@ echo "Filling a deleted keyed table with $NUM_INSERTS rows gave :-" >> $RES_FILE
 while test $COUNT -lt $NUM_TESTS
 do
 	echo "Deleting contents of keyed table"
-	echo "$DELETE \p\g" | ($MSQL $DB > /dev/null)
+	echo "$DELETE \p\g" | (../msql/msql $DB > /dev/null)
 	echo "Filling data holes with $NUM_INSERTS inserts."
 	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
 	if test $? -ne 0
@@ -290,9 +292,9 @@ echo "Inserting $NUM_INSERTS rows into new flat table gave :-" >> $RES_FILE
 while test $COUNT -lt $NUM_TESTS
 do
 	echo "Dropping test table"
-	echo "$DROP \p\g" | ($MSQL $DB > /dev/null)
+	echo "$DROP \p\g" | (../msql/msql $DB > /dev/null)
 	echo "Creating flat table"
-	echo "$CREATE_FLAT \p\g" | ($MSQL $DB > /dev/null)
+	echo "$CREATE_FLAT \p\g" | (../msql/msql $DB > /dev/null)
 	echo "Inserting $NUM_INSERTS rows into flat table"
 	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
 	if test $? -ne 0
@@ -345,7 +347,7 @@ echo "Filling a deleted flat table with $NUM_INSERTS rows gave :-" >> $RES_FILE
 while test $COUNT -lt $NUM_TESTS
 do
 	echo "Deleting contents of flat table"
-	echo "$DELETE \p\g" | ($MSQL $DB > /dev/null)
+	echo "$DELETE \p\g" | (../msql/msql $DB > /dev/null)
 	echo "Filling data holes with $NUM_INSERTS inserts."
 	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
 	if test $? -ne 0

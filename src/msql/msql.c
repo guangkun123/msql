@@ -2,8 +2,7 @@
 **	msql.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995   Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -30,10 +29,6 @@ static char RCS_id[] =
 #include "common/portability.h"
 
 #include "msql.h"
-#include "version.h"
-
-
-#define	MAX_LEN 15 * 1024
 
 
 usage()
@@ -106,9 +101,8 @@ handleQuery(sock, q)
 	char	*q;
 {
 	char	*nq,
-		sepBuf[MAX_LEN];
+		sepBuf[2048];
 	int	off,
-		maxLen,
 		length;
 	m_result *result;
 	m_row	cur;
@@ -146,7 +140,6 @@ handleQuery(sock, q)
 	*/
 	(void)bzero(sepBuf,sizeof(sepBuf));
 	strcat(sepBuf," +");
-	maxLen = 1;
 	while((curField = msqlFetchField(result)))
 	{
 		switch(curField->type)
@@ -171,13 +164,6 @@ handleQuery(sock, q)
 				length = max(strlen(curField->name),
 						curField->length);
 				break;
-		}
-		maxLen += length;
-		if (maxLen >= MAX_LEN)
-		{
-			printf("\n\nRow length is too long to be displayed\n");
-			msqlFreeResult(result);
-			return;
 		}
 		bufFill(sepBuf,0,length,'-');
 		strcat(sepBuf,"-+");
@@ -255,16 +241,8 @@ handleQuery(sock, q)
 						curField->length);
 				break;
 			}
-			if (cur[off])
-			{
-				printf(" %s",cur[off]);
-				fill(strlen(cur[off]),length,' ');
-			}
-			else
-			{
-				printf(" NULL");
-				fill(4,length,' ');
-			}
+			printf(" %s",cur[off]);
+			fill(strlen(cur[off]),length,' ');
 			printf("|");
 			off++;
 		}
@@ -282,28 +260,18 @@ editQuery(q)
 	char	*q;
 {
 	char	*filename,
-		*editor,
-		combuf[1024];
+		combuf[80];
 	int	fd;
 
-	filename = (char *)msql_tmpnam(NULL);
+	filename = tmpnam(NULL);
 	fd = open(filename,O_CREAT | O_WRONLY, 0777);
-	editor = (char *)getenv("VISUAL");
-	if (!editor)
-	{
-		editor = (char *)getenv("EDITOR");
-	}
-	if (!editor)
-	{
-		editor = "vi";
-	}
 	write(fd,q,strlen(q));
 	close(fd);
-	sprintf(combuf,"%s %s",editor,filename);
+	sprintf(combuf,"vi %s",filename);
 	system(combuf);
 	fd = open(filename,O_RDONLY, 0777);
-	bzero(q,MAX_LEN);
-	read(fd,q,MAX_LEN);
+	bzero(q,2048);
+	read(fd,q,2048);
 	close(fd);
 	unlink(filename);
 }
@@ -314,7 +282,7 @@ main(argc,argv)
 	int	argc;
 	char	*argv[];
 {
-	char	qbuf[MAX_LEN],
+	char	qbuf[2048],
 		*cp,
 		*host = NULL;
 	int	newQ = 1,
@@ -323,8 +291,7 @@ main(argc,argv)
 		inString = 0,
 		c,
 		argsLeft,
-		errFlag = 0,
-		qLen = 0;
+		errFlag = 0;
 	register u_int inchar;
 	extern	int optind;
 	extern	char *optarg;
@@ -380,7 +347,6 @@ main(argc,argv)
 	*/
 
 	printf("Welcome to the miniSQL monitor.  Type \\h for help.\n\n");
-		
 	inchar = EOF+1;
 	(void)bzero(qbuf,sizeof(qbuf));
 	cp = qbuf;
@@ -388,13 +354,6 @@ main(argc,argv)
 	while(!feof(stdin))
 	{
 		inchar = fgetc(stdin);
-		qLen ++;
-		if (qLen == MAX_LEN)
-		{
-			printf("\n\n\nError : Query text too long ( > %d bytes!)\n\n", MAX_LEN);
-			printf("Check your query to ensure that there isn't an unclosed text field.\n\n");
-			exit(1);
-		}
 		if (inchar == '\\')
 		{
 			if (inString)
@@ -419,7 +378,6 @@ main(argc,argv)
 				case 'g':
 					handleQuery(sock,qbuf);
 					newQ = 1;
-					qLen = 0;
 					inString = 0;
 					printf("\nmSQL > ");
 					prompt=0;
@@ -432,7 +390,6 @@ main(argc,argv)
 					printf("    -> ");
 					prompt=0;
 					cp = qbuf + strlen(qbuf);
-					qLen = strlen(qbuf);
 					break;
 				case 'q':
 					msqlClose(sock);

@@ -13,7 +13,7 @@ echo
 echo	"all : $prog"
 echo
 echo	"$prog : $progobjs"
-echo	'	$(LINK) $(CC_ONLY) $(CC_FLAGS)'" $progobjs -o $prog "'$(LD_LIBS)'" $proglibs"
+echo	'	$(LINK) $(CC_FLAGS)'" $progobjs -o $prog "'$(LD_LIBS)'" $proglibs"
 echo
 echo	"clean :: "
 echo	"	rm -f $prog"

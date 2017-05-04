@@ -2,8 +2,7 @@
 **	msql_proc.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -44,8 +43,7 @@ static char RCS_id[] =
 int     command,
 	notnullflag,
 	keyflag,
-	outSock,
-	msqlSelectLimit;
+	outSock;
 
 char 	*curDB,
 	*arrayLen;
@@ -57,12 +55,12 @@ field_t	*fieldHead = NULL,
 
 order_t	*orderHead = NULL;
 
-tname_t	*tableHead = NULL;
+tlist_t	*tableHead = NULL;
 
 static	cond_t	*condTail = NULL;
 static	field_t	*fieldTail = NULL;
 static	order_t	*orderTail = NULL;
-static	tname_t	*tableTail = NULL;
+static	tlist_t	*tableTail = NULL;
 static 	int	havePriKey = 0;
 
 
@@ -90,7 +88,7 @@ msqlClean()
 	register field_t	*curField, *tmpField;
 	register cond_t		*curCond, *tmpCond;
 	register order_t 	*curOrder, *tmpOrder;
-	register tname_t	*curTable, *tmpTable;
+	register tlist_t	*curTable, *tmpTable;
 
 	msqlTrace(TRACE_IN,"msqlClean()");
 	command = 0;
@@ -149,7 +147,7 @@ msqlClean()
 	condHead = condTail = (cond_t *) NULL;
 	fieldHead = fieldTail = lastField = (field_t *) NULL;
 	orderHead = orderTail = (order_t *) NULL;
-	tableHead = tableTail = (tname_t *) NULL;
+	tableHead = tableTail = (tlist_t *) NULL;
 
 	msqlBackendClean();
 
@@ -288,7 +286,7 @@ val_t *msqlCreateValue(textRep,type,tokLen)
 			break;
 
 		case REAL_TYPE:
-			sscanf((char *)textRep ,"%lg",&new->val.realVal);
+			sscanf((char *)textRep ,"%lf",&new->val.realVal);
 			break;
 	}
 	msqlTrace(TRACE_OUT,"msqlCreateValue()");
@@ -392,31 +390,6 @@ int msqlAddField(ident,type,length,notNull,priKey)
 
 	msqlTrace(TRACE_IN,"msqlAddField()");
 
-	name = ident->seg2;
-	table = ident->seg1;
-
-
-	/*
-	** Look for duplicate field names on a table create
-	*/
-	if (type != 0)
-	{
-		new = fieldHead;
-		while(new)
-		{
-			if (strcmp(new->name,name) == 0)
-			{
-				sprintf(packet,
-					"-1:Duplicate field name '%s'\n",
-					name);
-				writePkt(outSock);
-				msqlTrace(TRACE_OUT,"msqlAddField()");
-				return(-1);
-			}
-			new = new->next;
-		}
-	}
-
 	if (priKey)
 	{
 		if (havePriKey)
@@ -434,27 +407,22 @@ int msqlAddField(ident,type,length,notNull,priKey)
 	}
 
 
+	if (*(ident->seg2))
+	{
+		name = ident->seg2;
+		table = ident->seg1;
+	}
+	else
+	{
+		name = ident->seg1;
+		table = NULL;
+	}
 	new = (field_t *)malloc(sizeof(field_t));
 	if (table)
 	{
-		if (strlen(table) > NAME_LEN)
-		{
-			sprintf(packet, "-1:Table name '%s' is too long\n",
-				table);
-			writePkt(outSock);
-			msqlTrace(TRACE_OUT,"msqlAddField()");
-			return(-1);
-		}
-		(void)strcpy(new->table,table);
+		(void)strncpy(new->table,table,NAME_LEN - 1);
 	}
-	if (strlen(name) > NAME_LEN)
-	{
-		sprintf(packet, "-1:Field name '%s' is too long\n", name);
-		writePkt(outSock);
-		msqlTrace(TRACE_OUT,"msqlAddField()");
-		return(-1);
-	}
-	(void)strcpy(new->name,name);
+	(void)strncpy(new->name,name,NAME_LEN - 1);
 	if (notNull)
 	{
 		new->flags |= NOT_NULL_FLAG;
@@ -500,12 +468,6 @@ int msqlAddField(ident,type,length,notNull,priKey)
 	return(0);
 }
 
-msqlSetSelectLimit(value)
-	val_t	*value;
-{
-	msqlSelectLimit = value->val.intVal;
-}
-
 
 msqlAddFieldValue(value)
 	val_t	*value;
@@ -532,8 +494,6 @@ msqlAddFieldValue(value)
 			free(value->val.charVal);
 			value->val.charVal = buf;
 		}
-		if (fieldVal->value)
-			freeValue(fieldVal->value);
 		fieldVal->value = value;
 	}
 	msqlTrace(TRACE_OUT,"msqlAddFieldValue()");
@@ -552,7 +512,7 @@ msqlAddFieldValue(value)
 **		  element of a where_clause.
 */
 
-int msqlAddCond(ident,op,value,bool)
+msqlAddCond(ident,op,value,bool)
 	ident_t	*ident;
 	int	op;
 	val_t	*value;
@@ -575,25 +535,6 @@ int msqlAddCond(ident,op,value,bool)
 		table = NULL;
 	}
 
-	if (strlen(name) > NAME_LEN)
-	{
-		sprintf(packet, "-1:Field name '%s' is too long\n", 
-			name);
-		writePkt(outSock);
-		msqlTrace(TRACE_OUT,"msqlAddCond()");
-		return(-1);
-	}
-	if (table)
-	{
-		if (strlen(table) > NAME_LEN)
-		{
-			sprintf(packet, "-1:Table name '%s' is too long\n", 
-				name);
-			writePkt(outSock);
-			msqlTrace(TRACE_OUT,"msqlAddCond()");
-			return(-1);
-		}
-	}
 	new = (cond_t *)malloc(sizeof(cond_t));
 	(void)strcpy(new->name,name);
 	if (table)
@@ -616,7 +557,6 @@ int msqlAddCond(ident,op,value,bool)
 	}
 	free(ident);
 	msqlTrace(TRACE_OUT,"msqlAddCond()");
-	return(0);
 }
 
 
@@ -661,89 +601,16 @@ msqlAddOrder(ident,dir)
 
 
 
-int msqlAddTable(name,alias)
-	char	*name,
-		*alias;
+msqlAddTable(name)
+	char	*name;
 {
-	register tname_t	*new,
-				*cur;
+	register tlist_t	*new;
 
 	msqlTrace(TRACE_IN,"msqlAddTable()");
 
-	new = (tname_t *)malloc(sizeof(tname_t));
-	if (alias)
-	{
-		/*
-		** Ensure the alias is unique
-		*/
-		cur = tableHead;
-		while(cur)
-		{
-			if (strcmp(cur->name,alias) == 0)
-			{
-				sprintf(packet, 
-					"-1:Nonunique table/alias name '%s'\n", 
-					alias);
-				writePkt(outSock);
-				msqlTrace(TRACE_OUT,"msqlAddTable()");
-				return(-1);
-			}
-			cur = cur->next;
-		}
-
-		/*
-		** Further checks on the table/alias name
-		*/
-		if (strlen(name) > NAME_LEN)
-		{
-			sprintf(packet, "-1:Table name '%s' is too long\n", 
-				name);
-			writePkt(outSock);
-			msqlTrace(TRACE_OUT,"msqlAddTable()");
-			return(-1);
-		}
-		if (strlen(alias) > NAME_LEN)
-		{
-			sprintf(packet,"-1:Table alias name '%s' is too long\n",
-				name);
-			writePkt(outSock);
-			msqlTrace(TRACE_OUT,"msqlAddTable()");
-			return(-1);
-		}
-		(void)strcpy(new->name,alias);
-		(void)strcpy(new->cname,name);
-	}
-	else
-	{
-		/*
-		** Ensure the table is unique
-		*/
-		cur = tableHead;
-		while(cur)
-		{
-			if (strcmp(cur->name,name) == 0)
-			{
-				sprintf(packet, 
-					"-1:Nonunique table name '%s'\n", 
-					name);
-				writePkt(outSock);
-				msqlTrace(TRACE_OUT,"msqlAddTable()");
-				return(-1);
-			}
-			cur = cur->next;
-		}
-
-		if (strlen(name) > NAME_LEN)
-		{
-			sprintf(packet, "-1:Table name '%s' is too long\n", 
-				name);
-			writePkt(outSock);
-			msqlTrace(TRACE_OUT,"msqlAddTable()");
-			return(-1);
-		}
-		(void)strcpy(new->name,name);
-		*(new->cname) = 0;
-	}
+	new = (tlist_t *)malloc(sizeof(tlist_t));
+	(void)strcpy(new->name,name);
+	(void)free(name);
 	if (!tableHead)
 	{
 		tableHead = tableTail = new;
@@ -754,7 +621,6 @@ int msqlAddTable(name,alias)
 		tableTail = new;
 	}
 	msqlTrace(TRACE_OUT,"msqlAddTable()");
-	return(0);
 }
 
 
@@ -800,6 +666,7 @@ msqlProcessQuery()
 	switch(command)
 	{
 		case SELECT: 
+			setProcTitle("Q=Select");
 			if (!msqlCheckPerms(READ_ACCESS))
 			{
 				sprintf(packet,"-1:Access Denied\n");
@@ -811,6 +678,7 @@ msqlProcessQuery()
 				orderHead,curDB);
 			break;
 		case CREATE: 
+			setProcTitle("Q=Create");
 			if (!msqlCheckPerms(WRITE_ACCESS))
 			{
 				sprintf(packet,"-1:Access Denied\n");
@@ -821,6 +689,7 @@ msqlProcessQuery()
 			res = msqlCreate(tableHead->name,fieldHead,curDB);
 			break;
 		case UPDATE: 
+			setProcTitle("Q=Update");
 			if (!msqlCheckPerms(RW_ACCESS))
 			{
 				sprintf(packet,"-1:Access Denied\n");
@@ -832,6 +701,7 @@ msqlProcessQuery()
 				curDB);
 			break;
 		case INSERT: 
+			setProcTitle("Q=Insert");
 			if (!msqlCheckPerms(WRITE_ACCESS))
 			{
 				sprintf(packet,"-1:Access Denied\n");
@@ -842,6 +712,7 @@ msqlProcessQuery()
 			res = msqlInsert(tableHead->name,fieldHead,curDB);
 			break;
 		case DELETE: 
+			setProcTitle("Q=Delete");
 			if (!msqlCheckPerms(WRITE_ACCESS))
 			{
 				sprintf(packet,"-1:Access Denied\n");
@@ -852,6 +723,7 @@ msqlProcessQuery()
 			res = msqlDelete(tableHead->name,condHead,curDB);
 			break;
 		case DROP: 
+			setProcTitle("Q=Drop");
 			if (!msqlCheckPerms(WRITE_ACCESS))
 			{
 				sprintf(packet,"-1:Access Denied\n");

@@ -2,8 +2,7 @@
 **	site.h	- local configuration parameters
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -46,15 +45,6 @@
 #else
 #define MSQL_UNIX_ADDR	"/tmp/msql.sock"
 #endif
-
-
-/*
-** Define language for error messages
-*/
-
-#define	ENGLISH
-/*#define	GERMAN */
-
 
 
 /*

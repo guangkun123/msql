@@ -3,16 +3,17 @@
 . $TOP/makegen/makegen.cf
 
 lib=$1
-libsrc=`echo $2 | sed "s/,/ /g"`
-libobj=`echo $3 | sed "s/,/ /g"`
+libobj=""
+shift
 
-for src in $libsrc
+while test $# -gt 0
 do
-	base=`echo $src | sed "s/\..*//"`
+	src=$1
+	base=`echo $1 | sed "s/\..*//"`
 	obj=`echo $src | sed "s/\.c\$/.o/"`
 	libobj="$libobj $obj"
 	echo	"$obj : $src"
-	echo	'	$(CC) $(CC_ONLY) $(CC_FLAGS) -c '"$src"
+	echo	'	$(CC) $(CC_FLAGS) -c '"$src"
 	echo
 	echo	"clean ::"
 	echo	"	rm -f $obj"

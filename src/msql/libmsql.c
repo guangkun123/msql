@@ -2,8 +2,7 @@
 **	libmsql.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -29,7 +28,6 @@
 #include <pwd.h>
 #include <stdlib.h>
 #include <varargs.h>
-#include <string.h>
 
 #include "common/portability.h"
 
@@ -40,15 +38,14 @@
 
 #include "common/site.h"
 
+#ifdef MINERVA_DEBUG
+#  include "common/debug.h"
+#endif
+
 #include "msql_priv.h"
-#include "errmsg.h"
 
 #define _LIB_SOURCE
 #include "msql.h"
-
-#ifndef	INADDR_NONE
-#define INADDR_NONE	-1
-#endif
 
 
 static	char	serverInfo[80],
@@ -66,7 +63,7 @@ static	m_data *tmpDataStore = NULL,
 char	msqlErrMsg[160];
 
 RETSIGTYPE	(*oldHandler)();
-static void msqlDebug();
+
 
 #define	resetError()	(void)bzero(msqlErrMsg,sizeof(msqlErrMsg))
 #define chopError()	{ char *cp; cp = msqlErrMsg+strlen(msqlErrMsg) -1; \
@@ -187,7 +184,7 @@ static void msqlDebug(va_alist)
 **		  handlers know which one to shut down.
 */
 
-static void setServerSock(sock)
+static setServerSock(sock)
 	int	sock;
 {
 	curServerSock = sock;
@@ -205,12 +202,11 @@ static void setServerSock(sock)
 **	Notes	: This is used by msqlClose and the signal handlers
 */
 
-static void closeServer(sock)
+static closeServer(sock)
 	int	sock;
 {
 	msqlDebug(MOD_API,"Server socket (%d) closed\n", sock);
 	shutdown(sock,2);
-	signal(SIGPIPE,oldHandler);
 	close(sock);
 }
 
@@ -256,7 +252,6 @@ RETSIGTYPE pipeHandler(sig)
 {
 	msqlDebug(MOD_API,"Hit by pipe signal\n");
 	closeServer(curServerSock);
-	return;
 }
 
 
@@ -354,10 +349,10 @@ static m_fdata *tableToFieldList(data)
 			head = prevField = curField;
 		}
 
-		curField->field.table = (char *)strdup((char *)curRow->data[0]);
-		curField->field.name = (char *)strdup((char *)curRow->data[1]);
-		curField->field.type = atoi((char*)curRow->data[2]);
-		curField->field.length = atoi((char*)curRow->data[3]);
+		curField->field.table = (char *)strdup(curRow->data[0]);
+		curField->field.name = (char *)strdup(curRow->data[1]);
+		curField->field.type = atoi(curRow->data[2]);
+		curField->field.length = atoi(curRow->data[3]);
 		curField->field.flags = 0;
 		if (*curRow->data[4] == 'Y')
 			curField->field.flags |= NOT_NULL_FLAG;
@@ -381,21 +376,18 @@ static m_fdata *tableToFieldList(data)
 int msqlConnect(host)
 	char	*host;
 {
-	char	*cp,
-		*envVar,
-		*unixPort;
+	char	*cp;
 	struct	sockaddr_in IPaddr;
 
 #ifdef HAVE_SYS_UN_H
 	struct	sockaddr_un UNIXaddr;
 #endif
-        struct  servent         *serv_ptr;
+
 	struct	hostent *hp;
 	u_long	IPAddr;
 	int	opt,
 		version,
-		sock,
-		tcpPort;
+		sock;
 	struct	passwd *pw;
 
 
@@ -422,18 +414,13 @@ int msqlConnect(host)
 	{
 #ifdef HAVE_SYS_UN_H
 		/* Shouldn't get in here with UNIX socks */
-	        unixPort = MSQL_UNIX_ADDR;
-        	if ((envVar = getenv("MSQL_UNIX_PORT")))
-        	{
-                	unixPort = envVar;
-        	}
 		strcpy(hostInfo,"Localhost via UNIX socket");
 		msqlDebug(MOD_API,"Server name = NULL.  Using UNIX sock(%s)\n",
-			unixPort);
+			MSQL_UNIX_ADDR);
 		sock = socket(AF_UNIX,SOCK_STREAM,0);
 		if (sock < 0)
 		{
-			sprintf(msqlErrMsg,SOCKET_ERROR);
+			sprintf(msqlErrMsg,"Can't create UNIX socket");
 			return(-1);
 		}
 		setServerSock(sock);
@@ -443,11 +430,11 @@ int msqlConnect(host)
 
 		(void)bzero(&UNIXaddr,sizeof(UNIXaddr));
 		UNIXaddr.sun_family = AF_UNIX;
-		strcpy(UNIXaddr.sun_path, unixPort);
+		strcpy(UNIXaddr.sun_path, MSQL_UNIX_ADDR);
 		if(connect(sock,(struct sockaddr *) &UNIXaddr, 
 			sizeof(UNIXaddr))<0)
 		{
-			sprintf(msqlErrMsg,CONNECTION_ERROR);
+			sprintf(msqlErrMsg,"Can't connect to local MSQL server");
 			close(sock);
 			return(-1);
 		}
@@ -455,23 +442,13 @@ int msqlConnect(host)
 	}
 	else
 	{
-	        tcpPort = MSQL_PORT;
-        	if ((serv_ptr = getservbyname("msql", "tcp")))
-        	{
-                	tcpPort = ntohs(serv_ptr->s_port);
-        	}
-        	if ((envVar = getenv("MSQL_TCP_PORT")))
-        	{
-                	tcpPort = atoi(envVar);
-        	}
-
 		sprintf(hostInfo,"%s via TCP/IP",host);
 		msqlDebug(MOD_API,"Server name = %s.  Using TCP sock (%d)\n",
-			host, tcpPort);
+			host, MSQL_PORT);
 		sock = socket(AF_INET,SOCK_STREAM,0);
 		if (sock < 0)
 		{
-			sprintf(msqlErrMsg,IPSOCK_ERROR);
+			sprintf(msqlErrMsg,"Can't create IP socket");
 			return(-1);
 		}
 		setServerSock(sock);
@@ -486,7 +463,7 @@ int msqlConnect(host)
 		** The server name may be a host name or IP address
 		*/
 	
-		if ((IPAddr = inet_addr(host)) != INADDR_NONE)
+		if ((IPAddr = inet_addr(host)) != -1)
 		{
 			bcopy(&IPAddr,&IPaddr.sin_addr,sizeof(IPAddr));
 		}
@@ -496,18 +473,19 @@ int msqlConnect(host)
 			if (!hp)
 			{
 				sprintf(msqlErrMsg,
-					UNKNOWN_HOST,
+					"Unknown MSQL Server Host (%s)",
 					host);
 				close(sock);
 				return(-1);
 			}
 			bcopy(hp->h_addr,&IPaddr.sin_addr, hp->h_length);
 		}
-		IPaddr.sin_port = htons(tcpPort);
+		IPaddr.sin_port = htons(MSQL_PORT);
 		if(connect(sock,(struct sockaddr *) &IPaddr, 
 			sizeof(IPaddr))<0)
 		{
-			sprintf(msqlErrMsg,CONN_HOST_ERROR, host);
+			sprintf(msqlErrMsg,"Can't connect to MSQL server on %s",
+				host);
 			perror("Connect");
 			close(sock);
 			return(-1);
@@ -524,7 +502,7 @@ int msqlConnect(host)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -544,7 +522,7 @@ int msqlConnect(host)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		closeServer(sock);
 		return(-1);
@@ -554,14 +532,16 @@ int msqlConnect(host)
 	cp = (char *)index(packet,':');
 	if (!cp)
 	{
-		strcpy(msqlErrMsg,PACKET_ERROR);
+		strcpy(msqlErrMsg,"Bad packet received from server");
 		closeServer(sock);
 		return(-1);
 	}
 	version = atoi(cp + 1);
 	if (version != PROTOCOL_VERSION) 
 	{
-		sprintf(msqlErrMsg, VERSION_ERROR, version, PROTOCOL_VERSION);
+		sprintf(msqlErrMsg,
+		   "Protocol mismatch. Server Version = %d Client Version = %d",
+			version, PROTOCOL_VERSION);
 		closeServer(sock);
 		return(-1);
 	}
@@ -587,10 +567,10 @@ int msqlConnect(host)
 	/*
 	** Send the username for this process for ACL checks
 	*/
-	pw = getpwuid(geteuid());
+	pw = getpwuid(getuid());
 	if (!pw)
 	{
-		strcpy(msqlErrMsg,USERNAME_ERROR);
+		strcpy(msqlErrMsg,"Can't find your username. Who are you?");
 		closeServer(sock);
 		return(-1);
 	}
@@ -600,7 +580,7 @@ int msqlConnect(host)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -621,7 +601,7 @@ int msqlConnect(host)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		closeServer(sock);
 		return(-1);
@@ -666,7 +646,7 @@ int msqlSelectDB(sock,db)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -687,7 +667,7 @@ int msqlSelectDB(sock,db)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		return(-1);
 	}
@@ -882,7 +862,7 @@ int msqlQuery(sock,q)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -902,7 +882,7 @@ int msqlQuery(sock,q)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		return(-1);
 	}
@@ -975,7 +955,7 @@ int readQueryData(sock)
 	if (readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -992,7 +972,7 @@ int readQueryData(sock)
 			}	
 			else
 			{
-				strcpy(msqlErrMsg,UNKNOWN_ERROR);
+				strcpy(msqlErrMsg,"Unknown mSQL error");
 			}
 			return(-1);
 		}
@@ -1018,25 +998,17 @@ int readQueryData(sock)
 		{
 			len = atoi(cp);
 			cp = (char *)index(cp,':');
-			if (len == -2)
-			{
-				cur->data[off] = (char *)NULL;
-				cp++;
-			}
-			else
-			{
-				cur->data[off] = (char *)malloc(len+1);
-				(void)bzero(cur->data[off],len+1);
-				(void)bcopy(cp+1,cur->data[off],len);
-				cp += len + 1;
-			}
+			cur->data[off] = (char *)malloc(len+1);
+			(void)bzero(cur->data[off],len+1);
+			(void)bcopy(cp+1,cur->data[off],len);
+			cp += len + 1;
 			off++;
 		}
 
 		if (readPkt(sock) <= 0)
 		{
 			closeServer(sock);
-			strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+			strcpy(msqlErrMsg,"MSQL server has gone away");
 			return(-1);
 		}
 	}
@@ -1191,8 +1163,8 @@ m_result *msqlListFields(sock,table)
 	tmp->queryData = NULL;
 	tmp->cursor = NULL;
 	tmp->numRows = 0;
-	freeQueryData(tmpDataStore);
 	tmpDataStore = NULL;
+	freeQueryData(tmpDataStore);
 	return(tmp);
 }
 
@@ -1212,7 +1184,7 @@ int msqlCreateDB(sock,DB)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -1231,7 +1203,7 @@ int msqlCreateDB(sock,DB)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		return(-1);
 	}
@@ -1251,7 +1223,7 @@ int msqlDropDB(sock,DB)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -1270,7 +1242,7 @@ int msqlDropDB(sock,DB)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		return(-1);
 	}
@@ -1290,7 +1262,7 @@ int msqlShutdown(sock)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -1309,7 +1281,7 @@ int msqlShutdown(sock)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		return(-1);
 	}
@@ -1330,7 +1302,7 @@ int msqlReloadAcls(sock)
 	if(readPkt(sock) <= 0)
 	{
 		closeServer(sock);
-		strcpy(msqlErrMsg,SERVER_GONE_ERROR);
+		strcpy(msqlErrMsg,"MSQL server has gone away");
 		return(-1);
 	}
 
@@ -1349,7 +1321,7 @@ int msqlReloadAcls(sock)
 		}
 		else
 		{
-			strcpy(msqlErrMsg,UNKNOWN_ERROR);
+			strcpy(msqlErrMsg,"Unknown MSQL error");
 		}
 		return(-1);
 	}

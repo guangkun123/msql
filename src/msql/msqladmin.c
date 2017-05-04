@@ -2,8 +2,7 @@
 **	msqladmin.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -238,7 +237,6 @@ main(argc,argv)
 		printf("\tmSQL TCP socket \t%d\n", MSQL_PORT);
 		printf("\tmSQL UNIX socket \t%s\n", MSQL_UNIX_ADDR);
 		printf("\tmSQL root user \t\t%s\n", ROOT);
-		printf("\tHost Architecture\t%s\n", ARCH);
 		msqlClose(sock);
 		exit(0);
 	}

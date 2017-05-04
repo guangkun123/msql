@@ -2,8 +2,7 @@
 **	net.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -66,7 +65,7 @@ initNet()
 
 
 
-int writePkt(fd)
+void writePkt(fd)
 	int	fd;
 {
 	u_char	*cp;
@@ -84,19 +83,17 @@ int writePkt(fd)
 		numBytes = write(fd,packetBuf + offset, remain);
 		if (numBytes == -1)
 		{
-			return(-1);
+			return;
 		}
 		offset += numBytes;
 		remain -= numBytes;
 	}
-	return(0);
 }
 
 
 RETSIGTYPE alarmHandler(sig)
 	int	sig;
 {
-	signal(sig,alarmHandler);
 	readTimeout = 1;
 }
 
@@ -223,7 +220,7 @@ char	*buf;
 	num <<= HIGH_BITS;
 #endif
 
-	bcopy4((char *)&num, buf);
+	bcopy((char *)&num, buf, 4);
 	return 0;
 }
 
@@ -238,7 +235,7 @@ char	*buf;
 {
 	int	num;
 
-	bcopy4(buf, (char *)&num);
+	bcopy(buf, (char *)&num, 4);
 
 #if BIG_INTS
 	num >>= HIGH_BITS;

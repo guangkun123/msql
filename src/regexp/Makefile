@@ -6,7 +6,7 @@
 #
 
 TOP=..
-TARGETS= all install clean
+TARGETS= all ESL MSQL install esl-install msql-install clean
 
 $(TARGETS) :: Makefile.full
 	@$(MAKE) -f Makefile.full $@
@@ -16,7 +16,7 @@ Makefile.full :: $(TOP)/site.mm Makefile.tmpl
 	echo "Depending ....." ;\
 	echo >> Makefile.full ;\
 	echo "######### Dependencies #########" >> Makefile.full ;\
-	$(MAKE) -f Makefile.full depend ;\
+	make -f Makefile.full depend ;\
 	echo "Done."
 
 

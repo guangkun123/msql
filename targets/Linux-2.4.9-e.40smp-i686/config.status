@@ -4,14 +4,14 @@
 # This directory was configured as follows,
 # on host localhost.localdomain:
 #
-# ./setup -v
+# ./setup 
 
 for arg
 do
   case "$arg" in
     -recheck | --recheck | --rechec | --reche | --rech | --rec | --re | --r)
-    echo running ${CONFIG_SHELL-/bin/sh} ./setup -v
-    exec ${CONFIG_SHELL-/bin/sh} ./setup -v ;;
+    echo running ${CONFIG_SHELL-/bin/sh} ./setup 
+    exec ${CONFIG_SHELL-/bin/sh} ./setup  ;;
     *) echo "Usage: config.status --recheck" 2>&1; exit 1 ;;
   esac
 done

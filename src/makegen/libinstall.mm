@@ -9,11 +9,6 @@ owner=$4
 group=$5
 
 echo	"install ::"
-echo    "	if test -f $dest;\\"
-echo    "	then\\"
-echo    "		rm -f $dest.old;\\"
-echo    "		mv $dest $dest.old;\\"
-echo    "	fi;\\"
 echo	"	cp $src $dest"
 echo	"	$ranlib $dest"
 if test "$mode." != "."
@@ -28,4 +23,3 @@ if test "$group." != "."
 then
 	echo	"	$chgrp $group $dest"
 fi
-echo

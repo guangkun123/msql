@@ -11,7 +11,7 @@ do
 	echo "	@echo					;\\"
 	echo "	echo \"--> [$DIR] directory  \"        	;\\"
 	echo "	cd $DIR                            	;\\"
-	echo "	\$(MAKE) \$(MFLAGS)	$targ			;\\"
+	echo "	make \$(MFLAGS)	$targ			;\\"
 	echo "	echo \"<-- [$DIR] done       \"		"
 	echo ""
 done

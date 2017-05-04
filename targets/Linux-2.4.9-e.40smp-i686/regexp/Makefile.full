@@ -1,0 +1,128 @@
+#
+# This is a "makegen" generated Makefile based on Makefile.tmpl
+#
+# Makegen has been developed as part of Minerva by David J. Hughes
+#
+# ********************   DO NOT EDIT THIS BY HAND   ********************
+#
+
+SHELL=/bin/sh
+
+#
+# Project top directory
+#
+
+TOP=..
+
+
+# Generated automatically from site.mm.in by configure.
+#
+# Site specific configuration
+#
+
+CC= gcc
+LINK= $(CC)
+CPP= gcc -E
+RANLIB= ranlib
+
+YACC= bison -y
+
+SIGLIST= 
+DIRENT= -DHAVE_DIRENT_H -DHAVE_DIRENT
+MMAP= -DHAVE_MMAP
+U_INT= -DHAVE_U_INT
+ROOT_EXEC= -DROOT_EXEC
+ROOT= root
+
+# Top of Minerva install tree
+INST_DIR= /usr/local/Minerva
+
+# Extra libraries if required
+EXTRA_LIB=  -lnsl
+
+# Any other CFlags required
+EXTRA_CFLAGS= -DHAVE_CONFIG_H
+
+# Directory for pid file
+PID_DIR= /var/log
+
+CFLAGS= -g -I$(TOP)/ $(EXTRA_CFLAGS)
+LDLIBS= -L$(TOP)/lib $(EXTRA_LIB)
+
+
+
+CC_FLAGS= $(CFLAGS)
+LD_LIBS= $(LDLIBS)
+
+#
+# Default Makefile Rules
+#
+
+install :: all
+
+depend ::
+
+clean ::
+	rm -f Makefile.full
+
+#
+# Makefile Rules
+#
+
+
+#
+# This makegen template is grafted from the original Makefile (also
+# included in this directory).  Look there for further porting hints
+#
+
+
+# Things you might want to put in ENV and LENV:
+# -Dvoid=int		compilers that don't do void
+# -DCHARBITS=0377	compilers that don't do unsigned char
+# -DSTATIC=extern	compilers that don't like "static foo();" as forward dec
+# -DSTRCSPN		library does not have strcspn()
+# -Dstrchr=index	library does not have strchr()
+
+ENV=
+LENV=-Dvoid=int -DCHARBITS=0377
+
+
+CC_FLAGS= $(CFLAGS) $(ENV) -I. $(U_INT)
+LINT_FLAGS= $(LINTFLAGS) $(ENV) -I.
+
+regexp.o : regexp.c
+	$(CC) $(CC_FLAGS) -c regexp.c
+
+clean ::
+	rm -f regexp.o
+
+depend ::
+
+regsub.o : regsub.c
+	$(CC) $(CC_FLAGS) -c regsub.c
+
+clean ::
+	rm -f regsub.o
+
+depend ::
+
+all : libregexp.a
+
+libregexp.a :  regexp.o regsub.o
+	ar rc libregexp.a  regexp.o regsub.o
+	ranlib libregexp.a
+
+clean :: 
+	rm -f libregexp.a
+
+
+all : ../lib/libregexp.a
+
+../lib/libregexp.a: libregexp.a
+	rm -f ../lib/libregexp.a
+	ln -s ../regexp/libregexp.a ../lib/libregexp.a
+	$(RANLIB) ../lib/libregexp.a
+
+
+
+######### Dependencies #########

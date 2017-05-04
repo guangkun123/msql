@@ -2,8 +2,7 @@
 **	relshow.c	- Display the database structure
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -193,7 +192,7 @@ main(argc,argv)
 		res = msqlListFields(sock,argv[optind+1]);
 		if (!res)
 		{
-			printf("\nERROR : Couldn't find table '%s' in '%s'\n\n",
+			printf("ERROR : Couldn't find %s in %s!\n\n",
 				argv[optind+1], argv[optind]);
 			exit(1);
 		}

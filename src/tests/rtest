@@ -13,7 +13,7 @@
 # (or you want to force a TCP connection) set the variable below to the
 # hostname of the box running the server
 #
-#MSQLHOST= -h Some.Other.Host
+MSQLHOST="-h fiddich.its.Bond.edu.au"
 
 
 # Do not uncomment this variable.  It is used to reset the test results
@@ -29,14 +29,6 @@ then
 	echo
 	exit 1
 fi
-
-#
-# Where are the programs we need
-#
-MSQLADMIN="../../msql/msqladmin"
-#MSQLADMIN="msqladmin"
-MSQL="../../msql/msql"
-#MSQL="msql"
 
 #
 # How can we echo without a newline?
@@ -61,8 +53,8 @@ COUNT=0
 #
 # Setup a clean database
 #
-echo "y" | $MSQLADMIN drop $DB > /dev/null
-$MSQLADMIN create $DB
+echo "y" | ../../msql/msqladmin drop $DB > /dev/null
+../../msql/msqladmin create $DB
 if test $? -ne 0
 then
 	echo
@@ -82,7 +74,7 @@ do
 	$ECHO_N ".$ECHO_C"
 	if test "$RESET." = "."
 	then
-		$MSQL $MSQHOST $DB < $I.test > $I.res 2>&1
+		../../msql/msql $MSQLHOST $DB < $I.test > $I.res 2>&1
 		diff $I.out $I.res > /dev/null
 		if test $? -ne 0 
 		then
@@ -94,7 +86,7 @@ do
 			exit 1
 		fi
 	else
-		$MSQL $MSQHOST $DB < $I.test > $I.out 2>&1
+		../../msql/msql $MSQHOST $DB < $I.test > $I.out 2>&1
 	fi
 	COUNT=`expr $COUNT + 1`
 done

@@ -12,8 +12,8 @@ base=`echo $src | sed "s/\..*//"`
 echo
 echo	"# Make rules for building $obj"
 echo
-echo	"$obj : $src Makefile.full $deps"
-echo	'	$(CC) $(CC_ONLY) $(CC_FLAGS)'" -c $src"
+echo	"$obj : $src $deps"
+echo	'	$(CC) $(CC_FLAGS)'" -c $src"
 echo
 echo	"clean ::"
 echo	"	rm -f $obj $base.lint"

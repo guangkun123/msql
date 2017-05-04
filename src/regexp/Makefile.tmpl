@@ -18,7 +18,7 @@ LENV=-Dvoid=int -DCHARBITS=0377
 CC_FLAGS= $(CFLAGS) $(ENV) -I. $(U_INT)
 LINT_FLAGS= $(LINTFLAGS) $(ENV) -I.
 
-!library libregexp.a regexp.c,regsub.c
+!library libregexp.a regexp.c regsub.c
 
 all : ../lib/libregexp.a
 

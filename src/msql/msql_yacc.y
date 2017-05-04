@@ -2,8 +2,7 @@
 **	msql_yacc.y	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -31,7 +30,6 @@
 
 #include "msql_priv.h"
 #include "msql.h"
-#include "common/portability.h"
 
 int	yylineno;
 extern	int selectWildcard,
@@ -61,7 +59,6 @@ ident_t	*msqlCreateIdent();
 
 %token	ALL
 %token	DISTINCT
-%token	AS
 
 %token	WHERE
 %token	ORDER
@@ -93,7 +90,7 @@ ident_t	*msqlCreateIdent();
 %token	CHAR
 %token	REAL
 
-%token  LIMIT
+
 
 %%
 
@@ -135,13 +132,7 @@ create
 	: CREATE TABLE IDENT '(' 
 		{
 			command = CREATE;
-			if (msqlAddTable($3,NULL) < 0)
-			{
-				myFree($3);
-				msqlClean();
-				return;
-			}
-			myFree($3);
+			msqlAddTable($3);
 		}
 	  field_list ')'
 
@@ -178,6 +169,7 @@ type
 			$$=$1; 
 		}
 
+
 opt_nullspec
 	: /* NULL */	
 		{
@@ -208,7 +200,7 @@ opt_keyspec
 
 
 select
-	: SELECT dist_qual item_list FROM table_list where_clause order_clause limit_clause
+	: SELECT dist_qual item_list FROM table_list where_clause order_clause
 		{
 			command = SELECT;
 		}
@@ -229,74 +221,26 @@ item_list
 			ident_t	*tmp;
 
 			tmp = msqlCreateIdent(NULL,"*");
-			if (msqlAddField(tmp,0,0,0,0) < 0)
-			{
-				msqlClean();
-				return;
-			}
+			msqlAddField(tmp,0,0,0,0);
 			selectWildcard = 1;
 		}
 
 field
 	: qual_ident
 		{
-			if (msqlAddField($1,0,0,0,0) < 0)
-			{
-				msqlClean();
-				return;
-			}
+			msqlAddField($1,0,0,0,0);
 		}
 
 table_list
 	: IDENT
 		{
-			if (msqlAddTable($1,NULL) < 0)
-                        {
-				myFree($1);
-                                msqlClean();
-                                return;
-                        }
-			myFree($1);
-		}
-	| IDENT table_alias IDENT
-		{
-			if (msqlAddTable($1, $3) < 0)
-                        {
-				myFree($1);
-				myFree($3);
-                                msqlClean();
-                                return;
-                        }
-			myFree($1);
-			myFree($3);
+			msqlAddTable($1);
 		}
 	| table_list ',' IDENT
 		{
-			if (msqlAddTable($3,NULL) < 0)
-                        {
-				myFree($3);
-                                msqlClean();
-                                return;
-                        }
-			myFree($3);
-		}
-	| table_list ',' IDENT table_alias IDENT
-		{
-			if (msqlAddTable($3, $5) < 0)
-                        {
-				myFree($3);
-				myFree($5);
-                                msqlClean();
-                                return;
-                        }
-			myFree($3);
-			myFree($5);
+			msqlAddTable($3);
 		}
 
-table_alias
-	: /* NULL */
-	| AS
-	| EQ
 
 where_clause
 	: /* NULL */
@@ -305,21 +249,9 @@ where_clause
 
 cond_list
 	: cond_list cond_cont qual_ident cond_op cond_literal
-		{ 
-			if (msqlAddCond($3,$4,$5,$2) < 0)
-			{
-				msqlClean();
-				return;
-			}
-		}
+		{ msqlAddCond($3,$4,$5,$2); } 
 	| qual_ident cond_op cond_literal
-		{ 
-			if (msqlAddCond($1,$2,$3,NO_BOOL) < 0)
-			{
-				msqlClean();
-				return;
-			}
-		}
+		{ msqlAddCond($1,$2,$3,NO_BOOL); }
 
 
 cond_cont
@@ -353,25 +285,15 @@ order_clause
 
 order_list
 	: order_list ',' qual_ident order_dir
-		{ 
-			msqlAddOrder($3,(int) $4);
-		}
+		{ msqlAddOrder($3,(int) $4); }
 	| qual_ident order_dir
-		{ 
-			msqlAddOrder($1,(int) $2);
-		}
+		{ msqlAddOrder($1,(int) $2); }
 
 order_dir
 	: ASC
 	| DESC
 	| /* NULL */
 		{ $$ = (char *) ASC; }
-
-limit_clause
-	:
-		{ msqlSelectLimit = 0; }
-	| LIMIT literal
-		{ msqlSetSelectLimit($2); }
 
 
 /*
@@ -382,13 +304,7 @@ drop
 	: DROP TABLE IDENT
 		{
 			command = DROP;
-			if (msqlAddTable($3,NULL) < 0)
-			{
-				myFree($3);
-				msqlClean();
-				return;
-			}
-			myFree($3);
+			msqlAddTable($3);
 		}
 
 
@@ -397,57 +313,21 @@ drop
 */
 
 insert
-	: INSERT INTO IDENT opt_field_spec 
+	: INSERT INTO IDENT '(' fields ')' VALUES '(' values ')'
 		{
 			command = INSERT;
-			if (msqlAddTable($3,NULL) < 0)
-			{
-				msqlClean();
-				myFree($3);
-				return;
-			}
-			if ($4)
-				expandTableFields($3);
-			myFree($3);
+			msqlAddTable($3);
 		}
-	  VALUES '(' values ')'
-
-
-opt_field_spec
-	: /* NULL */
-		{
-			ident_t	*tmp;
-
-			tmp = msqlCreateIdent(NULL,"*");
-			if (msqlAddField(tmp,0,0,0,0) < 0)
-			{
-				msqlClean();
-				return;
-			}
-			$$ = (char *) 1;
-		}
-	| '(' fields ')'
-		{
-			$$ = (char *) 0;
-		}
-
+	 
 
 fields
 	: fields ',' qual_ident
 		{ 
-			if (msqlAddField($3,0,0,0,0) < 0)
-			{
-				msqlClean();
-				return;
-			}
+			msqlAddField($3,0,0,0,0);
 		}
 	| qual_ident
 		{ 
-			if (msqlAddField($1,0,0,0,0) < 0)
-			{
-				msqlClean();
-				return;
-			}
+			msqlAddField($1,0,0,0,0); 
 		}
 
 
@@ -459,7 +339,7 @@ values
 		 }
 	|  literal
 		{ 
-			msqlAddFieldValue($1);
+			msqlAddFieldValue($1); 
 		}
 
 
@@ -472,33 +352,16 @@ update
 	: UPDATE IDENT SET update_list where_clause
 		{
 			command = UPDATE;
-			if (msqlAddTable($2,NULL) < 0)
-			{
-				msqlClean();
-				return;
-			}
-			myFree($2);
+			msqlAddTable($2);
 		}
 
 update_list
 	: update_list ',' qual_ident EQ literal
-		{
-			if (msqlAddField($3,0,0,0,0) < 0)
-			{
-				msqlClean();
-				return;
-			}
-		  	msqlAddFieldValue($5);
-		}
+		{ msqlAddField($3,0,0,0,0);
+		  msqlAddFieldValue($5); }
 	| qual_ident EQ literal
-		{ 	
-			if (msqlAddField($1,0,0,0,0) < 0)
-			{
-				msqlClean();
-				return;
-			}
-		  	msqlAddFieldValue($3); 
-		}
+		{ msqlAddField($1,0,0,0,0);
+		  msqlAddFieldValue($3); }
 
 
 /*
@@ -509,13 +372,7 @@ delete
 	: DELETE  FROM IDENT where_clause 
 		{
 			command = DELETE;
-			if (msqlAddTable($3,NULL) < 0)
-			{
-				myFree($3);
-				msqlClean();
-				return;
-			}
-			myFree($3);
+			msqlAddTable($3);
 		}
 
 

@@ -12,8 +12,7 @@ drop table test2
 create table test (
 	name	char(10) primary key,
 	age	int,
-	phone	char(20),
-	addr	char(20)
+	phone	char(20)
 )
 \p\g
 

@@ -1,12 +1,7 @@
-# Do some lookups 
+# Try a NULL insert into a NOT NULL field (there's no name field)
+#
+# NOTE : This should fail
 
-select phone from test where user = 'Bambi'\p\g
-select phone from test where user LIKE '%ambi'\p\g
-select phone from test where age < 25\p\g
-select phone from test where age > 25\p\g
-select phone from test where user > 'apple'\p\g
-select * from test where phone = '(075) 951412' \p\g
+insert into test (age, phone) values ( 99, '9999') 
+\p\g
 
-select * from test2 \p\g
-select user from test2 where fullname = NULL\p\g
-select user from test2 where fullname <> NULL\p\g

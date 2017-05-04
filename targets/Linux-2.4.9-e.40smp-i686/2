@@ -1,0 +1,108 @@
+
+Regenerating Makefile.
+...................................
+Done.
+make[1]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686'
+
+Starting make for mSQL
+
+
+--> [makedepend] directory  
+make[2]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/makedepend'
+cc -g -DOBJSUFFIX=\".o\" -DINCLUDEDIR=\"/usr/include\"   -c -o include.o include.c
+cc -g -DOBJSUFFIX=\".o\" -DINCLUDEDIR=\"/usr/include\"   -c -o main.o main.c
+cc -g -DOBJSUFFIX=\".o\" -DINCLUDEDIR=\"/usr/include\"   -c -o parse.o parse.c
+cc -g -DOBJSUFFIX=\".o\" -DINCLUDEDIR=\"/usr/include\"   -c -o pr.o pr.c
+cc -g -DOBJSUFFIX=\".o\" -DINCLUDEDIR=\"/usr/include\"   -c -o cppsetup.o cppsetup.c
+cc -g -DOBJSUFFIX=\".o\" -DINCLUDEDIR=\"/usr/include\"   -c -o ifparser.o ifparser.c
+cc -o makedepend include.o main.o parse.o pr.o cppsetup.o ifparser.o
+make[2]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/makedepend'
+<-- [makedepend] done       
+
+--> [regexp] directory  
+make[2]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/regexp'
+
+Regenerating Makefile.
+............................
+Done.
+Depending .....
+make[3]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/regexp'
+make[3]: Nothing to be done for `depend'.
+make[3]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/regexp'
+Done.
+make[3]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/regexp'
+gcc -g -I../ -DHAVE_CONFIG_H  -I. -DHAVE_U_INT -c regexp.c
+gcc -g -I../ -DHAVE_CONFIG_H  -I. -DHAVE_U_INT -c regsub.c
+ar rc libregexp.a  regexp.o regsub.o
+ranlib libregexp.a
+make[3]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/regexp'
+make[2]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/regexp'
+<-- [regexp] done       
+
+--> [common] directory  
+make[2]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/common'
+
+Regenerating Makefile.
+...............
+Done.
+Depending .....
+make[3]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/common'
+make[3]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/common'
+Done.
+make[3]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/common'
+gcc -g -I../ -DHAVE_CONFIG_H -DHAVE_U_INT -c strlib.c
+ar rc libmisc.a  strlib.o
+ranlib libmisc.a
+rm -f ../lib/libmisc.a 
+ln -s ../common/libmisc.a ../lib/libmisc.a
+ranlib ../lib/libmisc.a
+gcc -g -I../ -DHAVE_CONFIG_H -DHAVE_U_INT -c debug.c
+make[3]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/common'
+make[2]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/common'
+<-- [common] done       
+
+--> [msql] directory  
+make[2]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/msql'
+
+Regenerating Makefile.
+.............................................................
+Done.
+Depending .....
+make[3]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/msql'
+make[3]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/msql'
+Done.
+make[3]: Entering directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/msql'
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c libmsql.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c net.c
+ar rc libmsql.a  libmsql.o net.o
+ranlib libmsql.a
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msqladmin.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c acl.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" msqladmin.o acl.o libmsql.a ../lib/libmisc.a -o msqladmin -L../lib -lnsl  
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msql.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" msql.o libmsql.a ../lib/libmisc.a -o msql -L../lib -lnsl  
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msqldump.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" msqldump.o libmsql.a ../lib/libmisc.a -o msqldump -L../lib -lnsl  
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c relshow.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" relshow.o libmsql.a ../lib/libmisc.a -o relshow -L../lib -lnsl  
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c insert_test.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" insert_test.o libmsql.a ../lib/libmisc.a -o insert_test -L../lib -lnsl  
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c select_test.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" select_test.o libmsql.a ../lib/libmisc.a -o select_test -L../lib -lnsl  
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msqld.c
+
+bison -y -d msql_yacc.y
+mv y.tab.c msql_yacc.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msql_yacc.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msql_lex.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msql_proc.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" -c msqldb.c
+gcc -g -I../ -DHAVE_CONFIG_H -DINST_DIR=\"/usr/local/Minerva\"  -DHAVE_DIRENT_H -DHAVE_DIRENT -DHAVE_MMAP -DPID_DIR=\"/var/log\" -DHAVE_U_INT -DROOT_EXEC -DROOT=\"root\" msqld.o msql_yacc.o msql_lex.o msql_proc.o net.o msqldb.o acl.o libmsql.a -o msqld -L../lib -lnsl  ../common/debug.o -lmisc -lregexp
+make[3]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/msql'
+make[2]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686/msql'
+<-- [msql] done       
+
+Make of mSQL complete.
+You should now mSQL using make install
+
+make[1]: Leaving directory `/usr/local/src/msql-1.0.5/targets/Linux-2.4.9-e.40smp-i686'

@@ -1,0 +1,117 @@
+#
+# This is a "makegen" generated Makefile based on Makefile.tmpl
+#
+# Makegen has been developed as part of Minerva by David J. Hughes
+#
+# ********************   DO NOT EDIT THIS BY HAND   ********************
+#
+
+SHELL=/bin/sh
+
+#
+# Project top directory
+#
+
+TOP=..
+
+
+# Generated automatically from site.mm.in by configure.
+#
+# Site specific configuration
+#
+
+CC= gcc
+LINK= $(CC)
+CPP= gcc -E
+RANLIB= ranlib
+
+YACC= bison -y
+
+SIGLIST= 
+DIRENT= -DHAVE_DIRENT_H -DHAVE_DIRENT
+MMAP= -DHAVE_MMAP
+U_INT= -DHAVE_U_INT
+ROOT_EXEC= -DROOT_EXEC
+ROOT= root
+
+# Top of Minerva install tree
+INST_DIR= /usr/local/Minerva
+
+# Extra libraries if required
+EXTRA_LIB=  -lnsl
+
+# Any other CFlags required
+EXTRA_CFLAGS= -DHAVE_CONFIG_H
+
+# Directory for pid file
+PID_DIR= /var/log
+
+CFLAGS= -g -I$(TOP)/ $(EXTRA_CFLAGS)
+LDLIBS= -L$(TOP)/lib $(EXTRA_LIB)
+
+
+
+CC_FLAGS= $(CFLAGS)
+LD_LIBS= $(LDLIBS)
+
+#
+# Default Makefile Rules
+#
+
+install :: all
+
+depend ::
+
+clean ::
+	rm -f Makefile.full
+
+#
+# Makefile Rules
+#
+
+
+
+CC_FLAGS= $(CFLAGS) $(U_INT)
+LINT_FLAGS= $(LINTFLAGS) 
+
+all: ../lib/libmisc.a 
+all: debug.o
+
+strlib.o : strlib.c
+	$(CC) $(CC_FLAGS) -c strlib.c
+
+clean ::
+	rm -f strlib.o
+
+depend ::
+
+all : libmisc.a
+
+libmisc.a :  strlib.o
+	ar rc libmisc.a  strlib.o
+	ranlib libmisc.a
+
+clean :: 
+	rm -f libmisc.a
+
+
+# Make rules for building debug.o
+
+debug.o : debug.c 
+	$(CC) $(CC_FLAGS) -c debug.c
+
+clean ::
+	rm -f debug.o debug.lint
+
+depend ::
+	@$(TOP)/makedepend/makedepend -a -fMakefile.full $(CC_FLAGS) debug.c
+
+
+../lib/libmisc.a: libmisc.a
+	rm -f ../lib/libmisc.a 
+	ln -s ../common/libmisc.a ../lib/libmisc.a
+	$(RANLIB) ../lib/libmisc.a
+
+
+
+

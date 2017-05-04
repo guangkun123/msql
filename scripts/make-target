@@ -48,7 +48,6 @@ then
 fi 
 mkdir targets/${TARG}
 mkdir targets/${TARG}/lib
-echo ${TARG} > targets/${TARG}/arch-info
 echo
 echo Making target directory for ${TARG}
 cd targets/${TARG}

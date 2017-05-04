@@ -1,8 +1,8 @@
-/*	msqldb.c	- 
+/*
+**	msqldb.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -17,6 +17,7 @@
 ** ID = "$Id:"
 **
 */
+
 
 /*
 ** Notes for people hacking on this code.
@@ -66,7 +67,6 @@
 #endif
 
 #include <common/debug.h>
-#include <common/site.h>
 #include <common/portability.h>
 #include <regexp/regexp.h>
 
@@ -76,17 +76,14 @@
 
 #include "msql_priv.h"
 #include "msql.h"
-#include "errmsg.h"
 
 #define NO_POS		0xFFFFFFFF
 #define	REG		register
 
-
-
+#define TYPE_ERR	"Literal value for \'%s\' does not match field type!\n"
 
 
 static	cache_t	tableCache[CACHE_SIZE];
-static	char	*qSortRowBuf;
 
 extern	int	outSock;
 extern	char	*packet;
@@ -188,21 +185,13 @@ dropBlock(file,line,addr,type)
 			{
 #ifdef HAVE_MMAP
 				munmap(cur->addr,cur->size);
-				cur->addr = NULL;
 #endif
 			}
 			else
 			{
-				if (cur->addr)
-				{
-					free(cur->addr);
-					cur->addr = NULL;
-				}
-				
+				free(cur->addr);
 			}
 			free(cur);
-			cur = prev->next;
-			continue;
 		}
 		if (cur->addr == addr && cur->type == type)
 		{
@@ -234,8 +223,6 @@ dropBlock(file,line,addr,type)
 			addr);
 	}
 }
-
-
 
 checkBlocks(type)
 	int	type;
@@ -312,7 +299,7 @@ int MUnmap(addr,len,file,line)
 		res = munmap(addr,len);
 	if (res < 0)
 	{
-		perror("munmap");
+		perror("mmap");
 	}
 	return(res);
 }
@@ -322,28 +309,6 @@ int MUnmap(addr,len,file,line)
 
 
 #endif
-
-
-char *FastMalloc(size,file,line)
-	int	size;
-	char	*file;
-	int	line;
-{
-	char	*cp;
-
-	cp = (char *)malloc(size);
-	msqlDebug(MOD_MALLOC,"Allocating %d bytes at %X (%s:%d)\n",size,cp,
-		file,line);
-	if (size > 1000000)
-	{
-		msqlDebug(MOD_MALLOC,"Huge malloc trapped!\n");
-		abort();
-	}
-	if (debugSet(MOD_MALLOC))
-		pushBlock(file,line,MALLOC_BLK,cp,size);
-	return(cp);
-}
-
 
 char *Malloc(size,file,line)
 	int	size;
@@ -356,7 +321,13 @@ char *Malloc(size,file,line)
 	cp = (char *)malloc(size);
 	if (cp)
 	{
-		bzero(cp,size);
+		/*  An inline bzero() */
+		cp1 = cp;
+		while (cp1-cp < size)
+		{
+			*cp1++ = 0;
+		}
+		
 	}
 	msqlDebug(MOD_MALLOC,"Allocating %d bytes at %X (%s:%d)\n",size,cp,
 		file,line);
@@ -385,7 +356,6 @@ void Free(addr, file,line)
 
 
 #define malloc(s)		Malloc(s,__FILE__,__LINE__)
-#define fastMalloc(s)		FastMalloc(s,__FILE__,__LINE__)
 #define free(a)			Free(a,__FILE__,__LINE__)
 
 #define	safeFree(x)	{if(x) { (void)free(x); x = NULL; } }
@@ -414,8 +384,6 @@ int openTable(table,DB)
 
 
 
-#ifndef NEW_DB
-
 int openKey(table,DB)
 	char	*table;
 	char	*DB;
@@ -426,19 +394,6 @@ int openKey(table,DB)
 	return(open(path,O_RDWR));
 }
 
-#else
-
-DB *openKey(table,DB)
-	char	*table;
-	char	*DB;
-{
-	char	path[255];
-
-	(void)sprintf(path,"%s/msqldb/%s/%s.key",msqlHomeDir,DB,table);
-	return(dbopen(path,O_RDWR|O_CREAT,0700,DB_BTREE,NULL));
-}
-
-#endif
 
 
 
@@ -583,8 +538,7 @@ static void setupKey(cacheEntry,key)
 		
 		case CHAR_TYPE:
 			bcopy(value.val.charVal, cacheEntry->keyBuf+1,
-			    (cacheEntry->keyLen > strlen(value.val.charVal))
-			    ? strlen(value.val.charVal) : cacheEntry->keyLen);
+				strlen(value.val.charVal));
 			break;
 
 		case REAL_TYPE:
@@ -624,7 +578,7 @@ int msqlListDBs(sock)
 	dirp = opendir(path);
 	if (!dirp)
 	{
-		sprintf(errMsg,BAD_DIR_ERROR,path);
+		sprintf(errMsg,"Can't open directory \"%s\"",path);
 		msqlDebug(MOD_ERR,"Can't open directory \"%s\"\n",path);
 		msqlTrace(TRACE_OUT,"msqlListDBs()");
 		return(-1);
@@ -685,7 +639,7 @@ int msqlListTables(sock,DB)
 	dirp = opendir(path);
 	if (!dirp)
 	{
-		sprintf(errMsg,BAD_DIR_ERROR,path);
+		sprintf(errMsg,"Can't open directory \"%s\"",path);
 		msqlDebug(MOD_ERR,"Can't open directory \"%s\"\n",path);
 		msqlTrace(TRACE_OUT,"msqlListTables()");
 		return(-1);
@@ -756,7 +710,7 @@ void msqlListFields(sock,table,DB)
 
 	msqlTrace(TRACE_IN,"msqlListFields()");
 	msqlDebug(MOD_GENERAL,"Table to list = %s\n",table);
-	if((cacheEntry = loadTableDef(table,NULL,DB)))
+	if((cacheEntry = loadTableDef(table,DB)))
 	{
       		curField = cacheEntry->def;
 		while(curField)
@@ -771,19 +725,10 @@ void msqlListFields(sock,table,DB)
 			writePkt(sock);
 			curField = curField->next;
 		}
-		sprintf(packet,"-100:\n");
-		writePkt(sock);
 	}
-	else
-	{
-		sprintf(errMsg,BAD_TABLE_ERROR,table);
-		sprintf(packet,"-1:%s\n",errMsg);
-		writePkt(sock);
-		msqlTrace(TRACE_OUT,"msqlListFields()");
-		return;
-	}
+	sprintf(packet,"-100:\n");
+	writePkt(sock);
 	msqlTrace(TRACE_OUT,"msqlListFields()");
-	return;
 }
 
 
@@ -861,15 +806,7 @@ static void freeTableDef(tableDef)
 static void freeCacheEntry(entry)
 	cache_t	*entry;
 {
-	char	path[255];
-
 	msqlTrace(TRACE_IN,"freeCacheEntry()");
-	if (entry->result)
-	{
-        	(void)sprintf(path,"%s/msqldb/%s/%s.def",msqlHomeDir,
-			entry->DB,entry->table);
-	}
-
 	freeTableDef(entry->def);
 	entry->def = NULL;
 	*(entry->DB) = 0;
@@ -893,22 +830,7 @@ static void freeCacheEntry(entry)
 #endif
 	close(entry->stackFD);
 	close(entry->dataFD);
-#ifdef NEW_DB
-	if (entry->dbp)
-	{
-		entry->dbp->close(entry->dbp);
-		entry->dbp = NULL;
-	}
-#else
-	if (entry->keyFD >= 0)
-	{
-		close(entry->keyFD);
-	}
-#endif
-	if (entry->result)
-	{
-		unlink(path);
-	}
+	close(entry->keyFD);
 	msqlTrace(TRACE_OUT,"freeCacheEntry()");
 }
 
@@ -937,9 +859,8 @@ void dropCache()
 **	Notes	: 
 */
 
-field_t *readTableDef(table,alias,DB,keyLen)
+field_t *readTableDef(table,DB,keyLen)
 	char	*table,
-		*alias,
 		*DB;
 	int	*keyLen;
 {
@@ -959,7 +880,7 @@ field_t *readTableDef(table,alias,DB,keyLen)
 	fd = open(path,O_RDONLY,0);
 	if (fd < 0)
 	{
-		sprintf(errMsg,BAD_TABLE_ERROR,table);
+		sprintf(errMsg,"Unknown table \"%s\"",table);
 		msqlDebug(MOD_ERR,"Unknown table \"%s\"\n",table);
 		msqlTrace(TRACE_OUT,"readTableDef()");
 		return(NULL);
@@ -967,7 +888,7 @@ field_t *readTableDef(table,alias,DB,keyLen)
 	numBytes = read(fd,buf,sizeof(buf));
 	if (numBytes < 1)
 	{
-		sprintf(errMsg,TABLE_READ_ERROR,table);
+		sprintf(errMsg,"Error reading table \"%s\" definition",table);
 		msqlDebug(MOD_ERR,"Error reading table \"%s\" definition\n",table);
 		msqlTrace(TRACE_OUT,"readTableDef()");
 		return(NULL);
@@ -980,7 +901,7 @@ field_t *readTableDef(table,alias,DB,keyLen)
 	while(fieldCount < numFields)
 	{
 		tmpField = (field_t *)(buf + (fieldCount * sizeof(field_t)));
-		curField = (field_t *)fastMalloc(sizeof(field_t));
+		curField = (field_t *)malloc(sizeof(field_t));
 		if (!headField)
 		{
 			headField = prevField = curField;
@@ -991,10 +912,6 @@ field_t *readTableDef(table,alias,DB,keyLen)
 			prevField = curField;
 		}
 		(void)bcopy(tmpField, curField, sizeof(field_t));
-		if (alias)
-		{
-			strcpy(curField->table,alias);
-		}
 		if (tmpField->flags & PRI_KEY_FLAG)
 		{
 			*keyLen = tmpField->length;
@@ -1022,7 +939,6 @@ static cache_t *createTmpTable(table1,table2,fields)
 		*tmpField;
 	char	path[255],
 		*tmpfile,
-		*tmpStr,
 		*cp;
 	int	fd,
 		foundField;
@@ -1032,13 +948,14 @@ static cache_t *createTmpTable(table1,table2,fields)
 	** Create a name for this tmp table
 	*/
 	msqlTrace(TRACE_IN,"createTmpTable()");
-	tmpStr = tmpfile = (char *)msql_tmpnam(NULL);
+	tmpfile = (char *)tmpnam(NULL);
 	cp = (char *)rindex(tmpfile,'/');
 	if (cp)
 	{
 		tmpfile = cp+1;
 	}
 	(void)sprintf(path,"%s/msqldb/.tmp/%s.dat",msqlHomeDir,tmpfile);
+	(void)sprintf(path,"/tmp/%s.dat",tmpfile);
 
 
 	/*
@@ -1047,23 +964,21 @@ static cache_t *createTmpTable(table1,table2,fields)
 	new = (cache_t *)malloc(sizeof(cache_t));
 	if (!new)
 	{
-		sprintf(errMsg,TMP_MEM_ERROR);
+		sprintf(errMsg,"Out of memory for temporary table");
 		msqlDebug(MOD_ERR,"Out of memory for temporary table (%s)\n"
 		,path);
 		msqlTrace(TRACE_OUT,"createTmpTable()");
-		free((char *)tmpStr);
 		return(NULL);
 	}
 	(void)strcpy(new->table,tmpfile);
 	fd = open(path,O_RDWR|O_CREAT|O_TRUNC, 0700);
 	if (fd < 0)
 	{
-		sprintf(errMsg,TMP_CREATE_ERROR);
+		sprintf(errMsg,"Couldn't create temporary table");
 		msqlDebug(MOD_ERR,"Couldn't create temporary table (%s)\n",
 			path);
-		(void)free((char *)new);
+		(void)free(new);
 		msqlTrace(TRACE_OUT,"createTmpTable()");
-		free((char *)tmpStr);
 		return(NULL);
 	}
 	new->dataFD = fd;
@@ -1111,19 +1026,19 @@ static cache_t *createTmpTable(table1,table2,fields)
 		*/
 		if (newField)
 		{
-			newField->next = (field_t *)fastMalloc(sizeof(field_t));
+			newField->next = (field_t *)malloc(sizeof(field_t));
 			newField = newField->next;
 		}
 		else
 		{
-			new->def=newField=(field_t *)fastMalloc(sizeof(field_t));
+			new->def=newField=(field_t *)malloc(sizeof(field_t));
 		}
 		(void)bcopy(curField,newField,sizeof(field_t));
 		if( *(newField->table) == 0)
 		{
 			(void)strcpy(newField->table,table1->table);
 		}
-		/* newField->flags=0; */
+		newField->flags=0;
 		new->rowLen += curField->length + 1;
 		curField = curField->next;
 	}
@@ -1164,20 +1079,17 @@ static cache_t *createTmpTable(table1,table2,fields)
 			*/
 			if (newField)
 			{
-				newField->next = (field_t *)fastMalloc(
+				newField->next = (field_t *)malloc(
 					sizeof(field_t));
 				newField = newField->next;
 			}
 			else
 			{
-				new->def=newField=(field_t *)fastMalloc(
+				new->def=newField=(field_t *)malloc(
 					sizeof(field_t));
 			}
 			(void)bcopy(curField,newField,sizeof(field_t));
-			if( *(newField->table) == 0)
-			{
-				(void)strcpy(newField->table,table2->table);
-			}
+			(void)strcpy(newField->table,table2->table);
 			new->rowLen += curField->length + 1;
 			curField = curField->next;
 		}
@@ -1187,10 +1099,9 @@ static cache_t *createTmpTable(table1,table2,fields)
 	{
 		newField->next = NULL;
 	}
-	new->rowBuf = (u_char *)malloc(new->rowLen+1);
+	new->rowBuf = (char *)malloc(new->rowLen+1);
 	new->keyLen = 0;
 	msqlTrace(TRACE_OUT,"createTmpTable()");
-	free((char *)tmpStr);
 	return(new);
 }
 
@@ -1204,6 +1115,7 @@ static void freeTmpTable(entry)
 
         msqlTrace(TRACE_IN,"freeTmpTable()");
 	(void)sprintf(path,"%s/msqldb/.tmp/%s.dat",msqlHomeDir,entry->table);
+	(void)sprintf(path,"/tmp/%s.dat",entry->table);
 	freeTableDef(entry->def);
 	entry->def = NULL;
 	*(entry->DB) = 0;
@@ -1225,20 +1137,10 @@ static void freeTmpTable(entry)
 		entry->keySize = 0;
 	}
 #endif
-	if (entry->stackFD >= 0)
-		close(entry->stackFD);
+	close(entry->stackFD);
 	close(entry->dataFD);
-#ifdef NEW_DB
-	if (entry->dbp)
-	{
-		entry->dbp->close(entry->dbp);
-		entry->dbp = NULL;
-	}
-#else
-	if (entry->keyFD >= 0)
-		close(entry->keyFD);
-#endif
-	(void)free((char *)entry);
+	close(entry->keyFD);
+	(void)free(entry);
 	unlink(path);
         msqlTrace(TRACE_OUT,"freeTmpTable()");
 }
@@ -1286,21 +1188,17 @@ static int findRowLen(cacheEntry)
 */
 
 
-cache_t *loadTableDef(table,cname,DB)
+cache_t *loadTableDef(table,DB)
 	char	*table,
-		*cname,
 		*DB;
 {
 	int	maxAge,
 		cacheIndex,
 		keyLen;
-	field_t	*def,
-		*curField;
+	field_t	*def;
 	REG 	cache_t	*entry;
 	REG 	int	count;
-	char	path[255],
-		*tableName;
-	struct	stat statBuf;
+	char	path[255];
 
 
 	/*
@@ -1311,13 +1209,6 @@ cache_t *loadTableDef(table,cname,DB)
 	msqlDebug(MOD_CACHE,"Table cache search for %s:%s\n",table,DB);
 	count = cacheIndex = 0;
 	maxAge = -1;
-	if (cname)
-	{
-		if (!*cname)
-		{
-			cname = NULL;
-		}
-	}
 	while(count < CACHE_SIZE)
 	{
 		entry = tableCache + count;
@@ -1325,8 +1216,7 @@ cache_t *loadTableDef(table,cname,DB)
 			entry->table?entry->table:"NULL",
 			entry->DB?entry->DB:"NULL", 
 			entry->age);
-		if (strcmp(entry->DB,DB)==0 && strcmp(entry->table,table)==0 &&
-		    strcmp((cname)?cname:"",entry->cname)==0)
+		if ((strcmp(entry->DB,DB)==0)&&(strcmp(entry->table,table)==0))
 		{
 			msqlDebug(MOD_CACHE,"Found cache entry at %d\n", count);
 			entry->age = 1;
@@ -1379,21 +1269,9 @@ cache_t *loadTableDef(table,cname,DB)
 			entry->keySize = 0;
 		}
 #endif
-
 		(void)close(entry->stackFD);
 		(void)close(entry->dataFD);
-#ifdef NEW_DB
-		if (entry->dbp)
-		{
-			entry->dbp->close(entry->dbp);
-			entry->dbp = NULL;
-		}
-#else
-		if (entry->keyFD >= 0)
-		{
-			(void)close(entry->keyFD);
-		}
-#endif
+		(void)close(entry->keyFD);
 		freeTableDef(entry->def);
 		safeFree(entry->rowBuf);
 		safeFree(entry->keyBuf);
@@ -1403,19 +1281,10 @@ cache_t *loadTableDef(table,cname,DB)
 	/*
 	** Now load the new entry
 	*/
-	if (cname)
-	{
-		tableName = cname;
-		def = readTableDef(cname,table,DB,&keyLen);
-	}
-	else
-	{
-		tableName = table;
-		def = readTableDef(table,NULL,DB,&keyLen);
-	}
+	def = readTableDef(table,DB,&keyLen);
 	if (!def)
 	{
-		sprintf(errMsg,TABLE_READ_ERROR,table);
+		sprintf(errMsg,"Couldn't read table definition for %s",table);
 		msqlDebug(MOD_ERR,"Couldn't read table definition for %s\n",table);
 		msqlTrace(TRACE_OUT,"loadTableDef()");
 		return(NULL);
@@ -1424,58 +1293,24 @@ cache_t *loadTableDef(table,cname,DB)
 	entry->age = 1;
 	entry->result = 0;
 	entry->keyLen = keyLen;
-	entry->keyFD = -1;
 	strcpy(entry->DB,DB);
 	strcpy(entry->table,table);
-	if (cname)
-	{
-		strcpy(entry->cname,cname);
-	}
-	else
-	{
-		*(entry->cname) = 0;
-	}
 	
 	msqlDebug(MOD_CACHE,"Loading cache entry %d (%s:%s)\n", cacheIndex, 
 		entry->DB, entry->table);
-	if((entry->dataFD = openTable(tableName,DB)) < 0)
+	if((entry->dataFD = openTable(table,DB)) < 0)
 	{
-		sprintf(errMsg,DATA_OPEN_ERROR,tableName);
+		sprintf(errMsg,"Couldn't open data file for %s");
 		msqlTrace(TRACE_OUT,"loadTableDef()");
 		return(NULL);
 	}
-	if((entry->stackFD = openStack(tableName,DB)) < 0)
+	if((entry->stackFD = openStack(table,DB)) < 0)
 	{
-		sprintf(errMsg,STACK_OPEN_ERROR,tableName);
+		sprintf(errMsg,"Couldn't open stack file for %s");
 		msqlTrace(TRACE_OUT,"loadTableDef()");
 		return(NULL);
 	}
-	curField = entry->def;
-	while(curField)
-	{
-		if (curField->flags & PRI_KEY_FLAG)
-		{
-#ifdef NEW_DB
-			entry->dbp = openKey(tableName,DB);
-			if (!entry->dbp)
-			{
-				sprintf(errMsg,KEY_OPEN_ERROR,tableName);
-				msqlTrace(TRACE_OUT,"loadTableDef()");
-				return(NULL);
-			}
-#else
-			entry->keyFD = openKey(tableName,DB);
-			if (entry->keyFD < 0)
-			{
-				sprintf(errMsg,KEY_OPEN_ERROR,tableName);
-				msqlTrace(TRACE_OUT,"loadTableDef()");
-				return(NULL);
-			}
-#endif
-			break;
-		}
-		curField = curField->next;
-	}
+	entry->keyFD = openKey(table,DB);
 
 #ifdef HAVE_MMAP
 	/*
@@ -1497,10 +1332,8 @@ cache_t *loadTableDef(table,cname,DB)
 	** keyLen + 1 (one for the active byte) buffers for performance.
 	*/
 	entry->rowLen = findRowLen(entry);
-	entry->rowBuf = (u_char *)malloc(entry->rowLen + 2);
-	entry->keyBuf = (u_char *)malloc(entry->keyLen + 1);
-	fstat(entry->dataFD,&statBuf);
-	entry->numRows = statBuf.st_size / (entry->rowLen + 1);
+	entry->rowBuf = (char *)malloc(entry->rowLen + 2);
+	entry->keyBuf = (char *)malloc(entry->keyLen + 1);
 	msqlTrace(TRACE_OUT,"loadTableDef()");
 	return(entry);
 }
@@ -1534,42 +1367,48 @@ int initTable(cacheEntry,mapFlag)
 	{
 		if (cacheEntry->remapData)
 		{
+			if (cacheEntry->dataMap != (caddr_t) NULL &&
+			    cacheEntry->dataMap != (caddr_t) -1 )
+			{
+                		munmap(cacheEntry->dataMap, cacheEntry->size);
+			}
 			fstat(cacheEntry->dataFD, &sbuf);
 			cacheEntry->size = sbuf.st_size;
 			if (cacheEntry->size)
 			{
 				cacheEntry->dataMap = (caddr_t)mmap(NULL, 
-					(size_t)cacheEntry->size, 
+					cacheEntry->size, 
 					(PROT_READ | PROT_WRITE), 
-					MAP_SHARED, cacheEntry->dataFD, 
-					(off_t)0);
+					MAP_SHARED, cacheEntry->dataFD, 0);
 				if (cacheEntry->dataMap == (caddr_t)-1)
 					return(-1);
 			}
 			cacheEntry->remapData = 0;
 		}
 	}
-
-#  ifndef NEW_DB
 	if (mapFlag && FULL_REMAP || mapFlag && KEY_REMAP)
 	{
 		if (cacheEntry->remapKey)
 		{
+			if (cacheEntry->keyMap)
+			{
+               			munmap(cacheEntry->keyMap, 
+					cacheEntry->keySize);
+			}
 			fstat(cacheEntry->keyFD, &sbuf);
 			cacheEntry->keySize = sbuf.st_size;
 			if (cacheEntry->keySize)
 			{
 				cacheEntry->keyMap = (caddr_t) mmap(NULL, 
-					(size_t)cacheEntry->keySize,
+					cacheEntry->keySize,
 					PROT_READ | PROT_WRITE, MAP_SHARED, 
-					cacheEntry->keyFD, (off_t)0);
+					cacheEntry->keyFD, 0);
 				if (cacheEntry->keyMap == (caddr_t)-1)
 					return(-1);
 			}
 			cacheEntry->remapKey = 0;
 		}
 	}
-#  endif
 #else
 	readRow(cacheEntry,&active,NO_POS);
 #endif
@@ -1598,7 +1437,7 @@ int writeRow(cacheEntry,row,rowNum)
 	char	*row;
 	u_int	rowNum;
 {
-	u_char	active = 1;
+	char	active = 1;
 	REG	off_t	seekPos;
 	char	*buf;
 
@@ -1608,8 +1447,6 @@ int writeRow(cacheEntry,row,rowNum)
 		msqlDebug(MOD_ACCESS,"writeRow() : append to %s\n",
 			(cacheEntry->result)?cacheEntry->resInfo:
 			cacheEntry->table);
-
-		cacheEntry->numRows++;
 	}
 	else
 	{
@@ -1617,30 +1454,19 @@ int writeRow(cacheEntry,row,rowNum)
 			rowNum, (cacheEntry->result)?cacheEntry->resInfo:
 			cacheEntry->table);
 	}
+	*cacheEntry->rowBuf = active;
 	if (rowNum == NO_POS)  /* append and flag remap */
 	{
 		cacheEntry->remapData = 1;
-		if (cacheEntry->dataMap != (caddr_t) NULL &&
-		    cacheEntry->dataMap != (caddr_t) -1 )
-		{
-               		munmap(cacheEntry->dataMap, cacheEntry->size);
-			cacheEntry->dataMap = NULL;
-			cacheEntry->size = 0;
-		}
-		if (lseek(cacheEntry->dataFD,(off_t)0, SEEK_END) < 0)
-		{
-			sprintf(errMsg,"seek error on append");
-			return(-1);
-		}
+		lseek(cacheEntry->dataFD,(off_t)0, SEEK_END);
 		if (row)
 		{
 			bcopy(cacheEntry->rowBuf+1,row,cacheEntry->rowLen);
 		}	
-		*cacheEntry->rowBuf = active;
 		if (write(cacheEntry->dataFD,cacheEntry->rowBuf,
 			cacheEntry->rowLen + 1) < 0)
 		{
-			sprintf(errMsg,WRITE_ERROR);
+			sprintf(errMsg,"Data write failed!");
 			return(-1);
 		}
 	}
@@ -1648,14 +1474,14 @@ int writeRow(cacheEntry,row,rowNum)
 	{
 		seekPos = rowNum * (cacheEntry->rowLen + 1);
 		buf = ((char *)cacheEntry->dataMap) + seekPos;
-		*buf = active;
 		if (row)
 		{
+			*buf = 1;
 			bcopy(row, buf+1, cacheEntry->rowLen);
 		}
 		else
 		{
-			bcopy(cacheEntry->rowBuf+1, buf+1, cacheEntry->rowLen);
+			bcopy(cacheEntry->rowBuf, buf, cacheEntry->rowLen+1);
 		}
 	}
 	return(0);
@@ -1669,7 +1495,7 @@ int writeRow(cacheEntry,row,rowNum)
 	u_int	rowNum;
 {
 	int	fd;
-	u_char	active=1;
+	char	active=1;
 
 	msqlTrace(TRACE_IN,"writeRow()");
 	if (rowNum == NO_POS)
@@ -1677,8 +1503,6 @@ int writeRow(cacheEntry,row,rowNum)
 		msqlDebug(MOD_ACCESS,"writeRow() : append to %s\n",
 			(cacheEntry->result)?cacheEntry->resInfo:
 			cacheEntry->table);
-
-		cacheEntry->numRows++;
 	}
 	else
 	{
@@ -1702,7 +1526,7 @@ int writeRow(cacheEntry,row,rowNum)
 	}
 	if (write(fd,cacheEntry->rowBuf, cacheEntry->rowLen + 1) < 0)
 	{
-		sprintf(errMsg,WRITE_ERROR);
+		sprintf(errMsg,"Data write failed!");
 		msqlTrace(TRACE_OUT,"writeRow()");
 		return(-1);
 	}
@@ -1713,44 +1537,8 @@ int writeRow(cacheEntry,row,rowNum)
 #endif
 
 
-#ifdef NEW_DB
 
-int writeKey(cacheEntry, key, rowNum)
-	cache_t	*cacheEntry;
-	pkey_t	*key;
-	u_int	rowNum;
-{
-	int	res;
-	DBT	keyInfo,
-		dataInfo;
-
-	if (rowNum == NO_POS)
-	{
-		rowNum = cacheEntry->numRows;
-	}
-
-	setupKey(cacheEntry,key);
-	keyInfo.data = cacheEntry->keyBuf+1;
-	keyInfo.size = cacheEntry->keyLen;
-
-	msqlDebug(MOD_KEY,"Writing key for %s at row %d",(char *)keyInfo.data, 
-		rowNum);
-
-	dataInfo.data = &rowNum;
-	dataInfo.size = sizeof(u_int);
-	res = cacheEntry->dbp->put(cacheEntry->dbp,&keyInfo,&dataInfo,
-		R_NOOVERWRITE);
-	msqlDebug(MOD_KEY," .. result = %d\n",res);
-	if (res == -1)
-		return(-1);
-	else
-		return(0);
-}
-
-
-#else
 #ifdef HAVE_MMAP
-
 
 int writeKey(cacheEntry ,key,rowNum)
 	cache_t	*cacheEntry;
@@ -1767,12 +1555,6 @@ int writeKey(cacheEntry ,key,rowNum)
 	if (rowNum == NO_POS)  /* append and flag remap */
 	{
 		cacheEntry->remapKey = 1;
-		if (cacheEntry->keyMap)
-		{
-			munmap(cacheEntry->keyMap, cacheEntry->keySize);
-			cacheEntry->keyMap = NULL;
-			cacheEntry->keySize = 0;
-		}
 		lseek(cacheEntry->keyFD,(off_t)0, SEEK_END);
 		if (write(cacheEntry->keyFD,cacheEntry->keyBuf,
 			cacheEntry->keyLen + 1) < 0)
@@ -1810,7 +1592,7 @@ int writeKey(cacheEntry,key,rowNum)
 	}
 	if (write(fd,cacheEntry->keyBuf, cacheEntry->keyLen + 1) < 0)
 	{
-		sprintf(errMsg,KEY_WRITE_ERROR);
+		sprintf(errMsg,"Write of key failed!");
 		msqlTrace(TRACE_OUT,"writeKey()");
 		return(-1);
 	}
@@ -1820,7 +1602,6 @@ int writeKey(cacheEntry,key,rowNum)
 
 
 
-#endif
 #endif
 
 
@@ -1941,35 +1722,7 @@ char *readRow(cacheEntry,active,rowNum)
 
 
 
-#ifdef NEW_DB
 
-u_int readKey(cacheEntry,key)
-	cache_t	*cacheEntry;
-	pkey_t	*key;
-{
-	u_int	rowNum;
-	int	res;
-	DBT	keyInfo,
-		dataInfo;
-
-	setupKey(cacheEntry,key);
-	keyInfo.data = cacheEntry->keyBuf+1;
-	keyInfo.size = cacheEntry->keyLen;
-	msqlDebug(MOD_KEY,"Finding key for %s\n",(char *)keyInfo.data);
-	res = cacheEntry->dbp->get(cacheEntry->dbp,&keyInfo,&dataInfo,0);
-	if (res == 0)
-	{
-		bcopy(dataInfo.data,&rowNum,sizeof(rowNum));
-	}
-	else
-	{
-		rowNum = NO_POS;
-	}
-	msqlDebug(MOD_KEY,"Key location = %d\n", rowNum);
-	return(rowNum);
-}
-
-#else
 #ifdef HAVE_MMAP
 
 u_int readKey(cacheEntry,key)
@@ -1984,10 +1737,10 @@ u_int readKey(cacheEntry,key)
 
 	setupKey(cacheEntry,key);
 	rowNum = 0;
-	seekPos = 0;
 	maxRow = cacheEntry->keySize / (cacheEntry->keyLen + 1);
 	while(rowNum < maxRow)
 	{
+		seekPos = rowNum * (cacheEntry->keyLen + 1);
 		if ((seekPos > cacheEntry->keySize) || !cacheEntry->keyMap)
 		{
 			return(NO_POS);
@@ -1995,24 +1748,12 @@ u_int readKey(cacheEntry,key)
 		buf = ((char *)cacheEntry->keyMap) + seekPos;
 		if (*buf)
 		{
-			/* Inline bcmp() */
-			REG char *s, *t, *e;
-
-			s = ((char*)cacheEntry->keyBuf) + 1;
-			e = s + cacheEntry->keyLen;
-			t = buf + 1;
-			while (s < e && *s == *t)
-			{
-				s++;
-				t++;
-			}
-			if (s >= e)
+			if(bcmp(cacheEntry->keyBuf+1,buf+1,cacheEntry->keyLen)==0)
 			{
 				return(rowNum);
 			}
 		}
 		rowNum++;
-		seekPos += (cacheEntry->keyLen + 1);
 	}
 	return(NO_POS);
 }
@@ -2067,7 +1808,6 @@ u_int readKey(cacheEntry,key)
 }
 
 #endif
-#endif
 
 
 
@@ -2077,8 +1817,8 @@ u_int readKey(cacheEntry,key)
 **	Purpose	: Invalidate a row in the table
 **	Args	: datafile FD, rowlength, desired row location
 **	Returns	: -1 on error
-**	Notes	: This just sets the row header byte to 0 indicating
-**		  that it's no longer in use 
+**	Notes	: This only sets the row header byte to 0 indicating
+**		  that it's no longer in use
 */
 
 int deleteRow(cacheEntry,rowNum)
@@ -2106,14 +1846,14 @@ int deleteRow(cacheEntry,rowNum)
 	fd = cacheEntry->dataFD;
 	if (lseek(fd,(off_t)rowNum * (rowLen+1), SEEK_SET) < 0)
 	{
-		sprintf(errMsg,SEEK_ERROR);
+		sprintf(errMsg,"Seek into data table failed!");
 		msqlTrace(TRACE_OUT,"deleteRow()");
 		return(-1);
 	}
 	activeBuf = 0;
 	if (write(fd,&activeBuf,1) < 0)
 	{
-		sprintf(errMsg,WRITE_ERROR);
+		sprintf(errMsg,"Data write failed!");
 		msqlTrace(TRACE_OUT,"deleteRow()");
 		return(-1);
 	}
@@ -2127,32 +1867,6 @@ int deleteRow(cacheEntry,rowNum)
 	return(0);
 }
 
-
-
-
-#ifdef NEW_DB
-
-
-int deleteKey(cacheEntry, key)
-	cache_t	*cacheEntry;
-	pkey_t	*key;
-{
-	int	res;
-	DBT	keyInfo;
-
-	setupKey(cacheEntry,key);
-	keyInfo.data = cacheEntry->keyBuf+1;
-	keyInfo.size = cacheEntry->keyLen;
-	msqlDebug(MOD_KEY,"Delete key for %s ",(char *)keyInfo.data);
-	res = cacheEntry->dbp->del(cacheEntry->dbp,&keyInfo,0);
-	msqlDebug(MOD_KEY," .. result = %d\n",res);
-	if (res == -1)
-		return(-1);
-	else
-		return(0);
-}
-
-#else
 
 int deleteKey(cacheEntry,rowNum)
 	cache_t	*cacheEntry;
@@ -2183,14 +1897,14 @@ int deleteKey(cacheEntry,rowNum)
 	{
 		if (lseek(fd,(off_t)rowNum * (rowLen+1), SEEK_SET) < 0)
 		{
-			sprintf(errMsg,KEY_SEEK_ERROR);
+			sprintf(errMsg,"Seek into key table failed!");
 			msqlTrace(TRACE_OUT,"deleteKey()");
 			return(-1);
 		}
 		activeBuf = 0;
 		if (write(fd,&activeBuf,1) < 0)
 		{
-			sprintf(errMsg,KEY_WRITE_ERROR);
+			sprintf(errMsg,"Write of key failed");
 			msqlTrace(TRACE_OUT,"deleteKey()");
 			return(-1);
 		}
@@ -2199,10 +1913,6 @@ int deleteKey(cacheEntry,rowNum)
 	msqlTrace(TRACE_OUT,"deleteKey()");
 	return(0);
 }
-
-#endif
-
-
 
 
 
@@ -2232,7 +1942,8 @@ static int checkNullFields(cacheEntry,row)
 	{
 		if (!*(row + offset) && (curField->flags & NOT_NULL_FLAG))
 		{
-			sprintf(errMsg,BAD_NULL_ERROR, curField->name);
+			sprintf(errMsg,"Field \"%s\" cannot be null",
+				curField->name);
 			msqlDebug(MOD_ERR,"Field \"%s\" cannot be null\n",
 				curField->name);
 			msqlTrace(TRACE_OUT,"checkNullFields()");
@@ -2309,101 +2020,12 @@ static void qualifyOrder(table,order)
 
 
 
-
-/****************************************************************************
-** 	_findKeyValue
-**
-**	Purpose	: 
-**	Args	: 
-**	Returns	: 
-**	Notes	: 
-*/
-
-static void findKeyValue(cacheEntry, row, keyPtr)
-	cache_t	*cacheEntry;
-	u_char	*row;
-	pkey_t	**keyPtr;
-{
-	REG 	field_t	*curField;
-	int	curOffset;
-	static	pkey_t	key;
-	u_char	*cp;
-	int	ip,
-		*offset;
-	double	*fp;
-	char	buf[8];
-
-
-
-
-	msqlTrace(TRACE_IN,"findKeyValue()");
-	if (keyPtr)
-	{
-		*keyPtr = NULL;
-	}
-	curField = cacheEntry->def;
-	curOffset = 0;
-	key.value = NULL;
-	while(curField)
-	{
-		if (curField->flags & PRI_KEY_FLAG)
-		{
-			if (keyPtr)
-			{
-				key.table = curField->table;
-				key.name = curField->name;
-				key.type = curField->type;
-				key.length = curField->length;
-				key.op = 0;
-				*keyPtr = &key;
-
-				if (key.value)
-				{
-					freeValue(key.value);
-				}
-
-				switch(curField->type)
-                        	{
-                                case INT_TYPE:
-#ifndef _CRAY
-                                        bcopy(row + curOffset + 1,&ip,4);
-                                        key.value =(val_t *)
-                                                fillValue(&ip,INT_TYPE);
-#else
-                                        key.value = (val_t*)fillValue(
-                                                row + *offset + 1, INT_TYPE);
-#endif
-                                        break;
-
-                                case CHAR_TYPE:
-                                        cp = (u_char *)row + curOffset + 1;
-                                        key.value = (val_t *)
-                                                fillValue(cp, curField->type,
-                                               curField->length);
-                                        break;
-
-                                case REAL_TYPE:
-                                        bcopy(row + curOffset + 1,buf,8);
-                                        fp = (double *)buf;
-                                        key.value =(val_t *)
-                                                fillValue(fp,REAL_TYPE);
-                                       break;
-				}
-			}
-			break;
-		}
-		curOffset += curField->length+1; /* +1 for null indicator */
-		curField = curField->next;
-	}
-}
-
-
 /****************************************************************************
 ** 	_setupFields
 **
 **	Purpose	: Determine the byte offset into a row of the desired fields
 **	Args	: Empty field list (field location) array,
-**		  List of desired fields 
+**		  List of desired fields
 **	Returns	: -1 on error
 **	Notes	: The field list array holds the byte offsets for the
 **		  fields.  ie. array element 0 will hold the byte offset
@@ -2442,13 +2064,13 @@ static int setupFields(cacheEntry,flist, fields, keyPtr)
 	}
 	if (numFields > MAX_FIELDS)
 	{
-		sprintf(errMsg,FIELD_COUNT_ERROR);
+		sprintf(errMsg,"Too many fileds in query");
 		msqlDebug(MOD_ERR,"Too many fileds in query\n");
 		msqlTrace(TRACE_OUT,"setupFields()");
 		return(-1);
 	}
 	*curFL = -1;
-
+	
 	curField = fields;
 	curFL = flist;
 	while(curField)
@@ -2488,9 +2110,9 @@ static int setupFields(cacheEntry,flist, fields, keyPtr)
 							!= INT_TYPE)
 						{
 							sprintf(errMsg,
-								TYPE_ERROR,
+								TYPE_ERR,
 								curField->name);
-							msqlDebug(MOD_ERR,TYPE_ERROR,
+							msqlDebug(MOD_ERR,TYPE_ERR,
 								curField->name);
 							return(-1);
 						}
@@ -2501,21 +2123,9 @@ static int setupFields(cacheEntry,flist, fields, keyPtr)
 							!= CHAR_TYPE)
 						{
 							sprintf(errMsg,
-								TYPE_ERROR,
+								TYPE_ERR,
 								curField->name);
-							msqlDebug(MOD_ERR,TYPE_ERROR,
-								curField->name);
-							return(-1);
-						}
-						if (strlen(
-						curField->value->val.charVal)>
-					 	curField->length)
-						{
-							sprintf(errMsg,
-								SIZE_ERROR,
-								curField->name);
-							msqlDebug(MOD_ERR,
-								SIZE_ERROR,
+							msqlDebug(MOD_ERR,TYPE_ERR,
 								curField->name);
 							return(-1);
 						}
@@ -2534,9 +2144,9 @@ static int setupFields(cacheEntry,flist, fields, keyPtr)
 							!= REAL_TYPE)
 						{
 							sprintf(errMsg,
-								TYPE_ERROR,
+								TYPE_ERR,
 								curField->name);
-							msqlDebug(MOD_ERR,TYPE_ERROR,
+							msqlDebug(MOD_ERR,TYPE_ERR,
 								curField->name);
 							return(-1);
 						}
@@ -2552,7 +2162,7 @@ static int setupFields(cacheEntry,flist, fields, keyPtr)
 	    {
 		if (curField->table)
 		{
-		    sprintf(errMsg,BAD_FIELD_ERROR,
+		    sprintf(errMsg,"Unknown field \"%s.%s\"",
 				curField->table,curField->name);
 		    msqlDebug(MOD_ERR,"Unknown field \"%s.%s\"\n",
 				curField->table,curField->name);
@@ -2561,7 +2171,7 @@ static int setupFields(cacheEntry,flist, fields, keyPtr)
 		}
 		else
 		{
-		    sprintf(errMsg,BAD_FIELD_2_ERROR,curField->name);
+		    sprintf(errMsg,"Unknown field \"%s\"",curField->name);
 		    msqlDebug(MOD_ERR,"Unknown field \"%s\"\n",curField->name);
 		    msqlTrace(TRACE_OUT,"setupFields()");
 		    return(-1);
@@ -2620,7 +2230,7 @@ static int setupConds(cacheEntry,clist, conds, keyPtr)
 	}
 	if (numConds > MAX_FIELDS)
 	{
-		sprintf(errMsg,COND_COUNT_ERROR);
+		sprintf(errMsg,"Too many fields in condition");
 		msqlDebug(MOD_ERR,"Too many fields in condition\n");
 		msqlTrace(TRACE_OUT,"setupConds()");
 		return(-1);
@@ -2657,7 +2267,8 @@ static int setupConds(cacheEntry,clist, conds, keyPtr)
 		}
 		if (!fieldDef)
 		{
-			sprintf(errMsg,BAD_FIELD_2_ERROR, curCond->name);
+			sprintf(errMsg,"Unknown field in where clause \"%s\"",
+				curCond->name);
 			msqlDebug(MOD_ERR,"Unknown field in where clause \"%s\"\n",
 				curCond->name);
 			msqlTrace(TRACE_OUT,"setupConds()");
@@ -2710,7 +2321,7 @@ static int setupOrder(cacheEntry,olist, order)
 	}
 	if (numOrder > MAX_FIELDS)
 	{
-		sprintf(errMsg,ORDER_COUNT_ERROR);
+		sprintf(errMsg,"Too many fields in order specification");
 		msqlDebug(MOD_ERR,"Too many fields in order specification\n");
 		msqlTrace(TRACE_OUT,"setupOrder()");
 		return(-1);
@@ -2738,7 +2349,8 @@ static int setupOrder(cacheEntry,olist, order)
 		}
 		if (!fieldDef)
 		{
-			sprintf(errMsg,BAD_FIELD_2_ERROR, curOrder->name);
+			sprintf(errMsg,"Unknown field in order clause \"%s\"",
+				curOrder->name);
 			msqlDebug(MOD_ERR,"Unknown field in order clause \"%s\"\n",
 				curOrder->name);
 			msqlTrace(TRACE_OUT,"setupOrder()");
@@ -2834,23 +2446,6 @@ field_t *expandFieldWildCards(cacheEntry,fields)
 
 
 
-expandTableFields(table)
-	char    *table;
-{
-	cache_t *cacheEntry;
-	extern char *curDB;
-	char	tableName[NAME_LEN];
-
-	msqlTrace(TRACE_IN,"expandTableFields()");
-	strcpy(tableName,table);
-	if((cacheEntry = loadTableDef(tableName,NULL,curDB)))
-	{
-		fieldHead = expandFieldWildCards(cacheEntry,fieldHead);
-	}
-	msqlTrace(TRACE_OUT,"expandTableFields()");
-}
-
-
 
 
 
@@ -2890,8 +2485,8 @@ static void fillRow(row,fields,flist)
 			{
 				case INT_TYPE:
 #ifndef _CRAY
-					bcopy4(&(curField->value->val.intVal),
-						cp);
+					bcopy(&(curField->value->val.intVal),cp,
+						sizeof(int));
 #else
 					packInt32(curField->value->val.intVal,
 						cp);
@@ -2907,8 +2502,8 @@ static void fillRow(row,fields,flist)
 					break;
 
 				case REAL_TYPE:
-					bcopy8(&(curField->value->val.realVal),
-						cp);
+					bcopy(&(curField->value->val.realVal),cp,
+						sizeof(double));
 					break;
 			}
 		}
@@ -2946,17 +2541,17 @@ static void updateValues(row,fields,flist)
 	offset = flist;
 	while(curField)
 	{
-		cp = row + *offset;
 		if (!curField->value->nullVal)
                 {
+                        cp = row + *offset;
                         *cp = '\001';
                         cp++;
 			switch(curField->type)
 			{
 				case INT_TYPE:
 #ifndef _CRAY
-					bcopy4(&(curField->value->val.intVal),
-						cp);
+					bcopy(&(curField->value->val.intVal),cp,
+						sizeof(int));
 #else
 				 	packInt32(curField->value->val.intVal, 
 						cp);
@@ -2964,19 +2559,16 @@ static void updateValues(row,fields,flist)
 					break;
 		
 				case CHAR_TYPE:
-					strncpy(cp,curField->value->val.charVal,
+					(void)bzero(cp, curField->length);
+					strncpy(cp, curField->value->val.charVal,
 						curField->length);
 					break;
 
 				case REAL_TYPE:
-					bcopy8(&(curField->value->val.realVal),
-						cp);
+					bcopy(&(curField->value->val.realVal),cp,
+						sizeof(double));
 					break;
 			}
-		}
-		else
-		{
-			*cp = '\000';
 		}
 		offset++;
 		curField = curField->next;
@@ -3064,12 +2656,12 @@ static void translateValues(fields)
 */
 
 static void extractValues(row,fields,flist)
-	u_char	*row;
+	char	*row;
 	field_t	*fields;
 	int	flist[];
 {
 	field_t	*curField;
-	u_char	*cp;
+	char	*cp;
 	int	ip,
 		*offset;
 	double	*fp;
@@ -3080,19 +2672,15 @@ static void extractValues(row,fields,flist)
 	offset = flist;
 	while(curField)
 	{
-		if (curField->value)
-		{
-			freeValue(curField->value);
-			curField->value = NULL;
-		}
 		if ( * (row + *offset)) 
 		{
+			freeValue(curField->value);
 			curField->value=NULL;
 			switch(curField->type)
 			{
 				case INT_TYPE:
 #ifndef _CRAY
-					bcopy4(row + *offset + 1,&ip);
+					bcopy(row + *offset + 1,&ip,4);
 					curField->value =(val_t *)
 						fillValue(&ip,INT_TYPE);
 #else
@@ -3102,14 +2690,14 @@ static void extractValues(row,fields,flist)
 					break;
 
 				case CHAR_TYPE:
-					cp = (u_char *)row + *offset + 1;
+					cp = (char *)row + *offset + 1;
 					curField->value = (val_t *)
 						fillValue(cp, CHAR_TYPE,
 						curField->length);
 					break;
 
 				case REAL_TYPE:
-					bcopy8(row + *offset + 1,buf);
+					bcopy(row + *offset + 1,buf,8);
 					fp = (double *)buf;
 					curField->value =(val_t *)
 						fillValue(fp,REAL_TYPE);
@@ -3135,18 +2723,12 @@ void regerror()
 	regErrFlag++;
 }
 
-
-
-
 static int regexpTest(str,re,maxLen)
 	char	*str,
 		*re;
 	int	maxLen;
 {
 	char	regbuf[1024],
-		strBuf[2048],
-		*strPtr,
-		*tmpBuf,
 		hold;
 	REG 	char *cp1, *cp2;
 	regexp	*reg;
@@ -3164,7 +2746,7 @@ static int regexpTest(str,re,maxLen)
 		switch(*cp1)
 		{
 			case '\\':
-				if (*(cp1+1) == '%' || *(cp1+1) == '_')
+				if (*(cp1+1))
 				{
 					cp1++;
 					*cp2 = *cp1;
@@ -3207,78 +2789,19 @@ static int regexpTest(str,re,maxLen)
 	** and then reset it (hey, I said it was ugly).
 	*/
 	regErrFlag = 0;
-	if (maxLen < sizeof(strBuf))
-	{
-		strncpy(strBuf,str,maxLen);
-		*(strBuf + maxLen) = 0;
-		tmpBuf = NULL;
-		strPtr = strBuf;
-	}
-	else
-	{
-		tmpBuf = (char *)malloc(maxLen+2);
-		strncpy(tmpBuf,str,maxLen);
-		*(tmpBuf + maxLen) = 0;
-		strPtr = tmpBuf;
-	}
+	hold = *(str + maxLen);
+	*(str + maxLen) = 0;
 	reg = regcomp(regbuf);
-	res = regexec(reg,strPtr);
+	res = regexec(reg,str);
+	*(str + maxLen) = hold;
 	safeFree(reg);
-	if (tmpBuf)
-		free(tmpBuf);
 	if (regErrFlag)
 	{
-		strcpy(errMsg, BAD_LIKE_ERROR);
+		strcpy(errMsg, "Evaluation of LIKE clause failed");
 		msqlDebug(MOD_ERR, "Evaluation of LIKE clause failed\n");
 		return(-1);
 	}
 	return(res);
-}
-
-
-
-/****************************************************************************
-** 	_byteMatch
-**
-**	Purpose	: comparison suite for single bytes.
-**	Args	: 
-**	Returns	: 
-**	Notes	: 
-*/
-
-static int byteMatch(v1,v2,op)
-	char	v1, v2; 
-	int	op;
-{
-	int	result;
-
-	switch(op)
-	{
-		case EQ_OP:
-			result = (v1 == v2);
-			break;
-			
-		case NE_OP:
-			result = (v1 != v2);
-			break;
-			
-		case LT_OP:
-			result = (v1 < v2);
-			break;
-			
-		case LE_OP:
-			result = (v1 <= v2);
-			break;
-			
-		case GT_OP:
-			result = (v1 > v2);
-			break;
-			
-		case GE_OP:
-			result = (v1 >= v2);
-			break;
-	}
-	return(result);
 }
 
 
@@ -3471,19 +2994,19 @@ static int realMatch(v1,v2,op)
 
 static int matchRow(cacheEntry,row,conds,clist)
 	cache_t	*cacheEntry;
-	u_char	*row;
+	char	*row;
 	cond_t	*conds;
 	int	*clist;
 {
 	REG 	cond_t	*curCond;
 	REG 	char	*cp;
-	REG 	int	result,
+	REG 	int	*ip,
+			result,
 			tmp,
 			ival;
 	int	*offset,
-		init=1,
-		iv;
-	double	fv;
+		init=1;
+	double	*fp;
 	char	buf[8];
 	u_char	*tmpUChar;
 	val_t	*value,
@@ -3525,7 +3048,8 @@ static int matchRow(cacheEntry,row,conds,clist)
 				}
 				else
 				{
-					strcpy(errMsg,UNQUAL_ERROR);
+					strcpy(errMsg,
+					   "Unqualified field in comparison");
 					msqlDebug(MOD_ERR,
 					   "Unqualified field in comparison\n");
 					msqlTrace(TRACE_OUT,"matchRow()");
@@ -3550,14 +3074,11 @@ static int matchRow(cacheEntry,row,conds,clist)
 						sizeof(val_t));
 					if (tmpVal.type == CHAR_TYPE)
 					{
-					    tmpVal.val.charVal= (u_char*)
-						fastMalloc
+					    tmpVal.val.charVal= (u_char*)malloc
 						(curField->length + 1);
 					    bcopy(tmpField.value->val.charVal,
 						tmpVal.val.charVal,
 						curField->length);
-					    *(tmpVal.val.charVal + 
-						curField->length) = 0;
 					}
 					freeValue(tmpField.value);
 					tmpField.value = NULL;
@@ -3569,14 +3090,14 @@ static int matchRow(cacheEntry,row,conds,clist)
 			}
 			if (!foundField)
 			{
-				sprintf(errMsg,BAD_FIELD_ERROR,
+				sprintf(errMsg,"Unknown field '%s.%s'",
 					value->val.identVal->seg1,
 					value->val.identVal->seg2);
 				msqlDebug(MOD_ERR,"Unknown field '%s.%s'\n",
 					value->val.identVal->seg1,
 					value->val.identVal->seg2);
 				msqlTrace(TRACE_OUT,"matchRow()");
-				(void)free((char *)value->val.charVal);
+				(void)free(value->val.charVal);
 				return(-1);
 			}
 			break;
@@ -3608,7 +3129,8 @@ static int matchRow(cacheEntry,row,conds,clist)
 		}
 		if (curCond->type != value->type)
 		{
-			sprintf(errMsg,BAD_TYPE_ERROR, curCond->name);
+			sprintf(errMsg,"Bad type for comparison of '%s'",
+				curCond->name);
 			msqlDebug(MOD_ERR,"Bad type for comparison of '%s'",
 				curCond->name);
 			return(-1);
@@ -3623,26 +3145,32 @@ static int matchRow(cacheEntry,row,conds,clist)
 			case INT_TYPE:
 				if (value->nullVal)
 				{
-					tmp = byteMatch(*(row + *offset),
-						0,curCond->op);
+#ifndef _CRAY
+					tmp = intMatch(*(row + *offset),0,
+						curCond->op);
+#else
+					tmp = intMatch(ival, 0, curCond->op);
+#endif
 					break;
 				}
 #ifdef _CRAY
 				ival = unpackInt32(row + *offset + 1);
 #else
 
-				bcopy4((row + *offset +1),&iv);
+				(void)bcopy((row + *offset +1),buf,sizeof(int));
+				ip = (int*)buf;
 #endif
 				if (curCond->op == LIKE_OP)
 				{
-					strcpy(errMsg, INT_LIKE_ERROR);
+					strcpy(errMsg,
+					    "Can't perform LIKE on int value");
 					msqlDebug(MOD_ERR,
 					   "Can't perform LIKE on int value\n");
 					msqlTrace(TRACE_OUT,"matchRow()");
 					return(-1);
 				}
 #ifndef _CRAY
-				tmp = intMatch(iv,value->val.intVal,
+				tmp = intMatch(*ip,value->val.intVal,
 					curCond->op);
 #else
 				tmp = intMatch(ival, value->val.intVal, 
@@ -3653,8 +3181,8 @@ static int matchRow(cacheEntry,row,conds,clist)
 			case CHAR_TYPE:
 				if (value->nullVal)
 				{
-					tmp = byteMatch(*(row + *offset),
-						0,curCond->op);
+					tmp = intMatch(*(row + *offset),0,
+						curCond->op);
 					break;
 				}
 				cp = (char *)row + *offset +1;
@@ -3662,7 +3190,7 @@ static int matchRow(cacheEntry,row,conds,clist)
 					curCond->op, curCond->length);
 				if (value == &tmpVal)
 				{
-					free((char *)tmpVal.val.charVal);
+					free(tmpVal.val.charVal);
 				}
 				if (tmp < 0)
 				{
@@ -3674,20 +3202,23 @@ static int matchRow(cacheEntry,row,conds,clist)
 			case REAL_TYPE:
 				if (value->nullVal)
 				{
-					tmp = byteMatch(*(row + *offset),
-						0,curCond->op);
+					tmp = intMatch(*(row + *offset),0,
+						curCond->op);
 					break;
 				}
-				bcopy8((row + *offset +1),&fv);
+				(void)bcopy((row + *offset +1),buf,
+					sizeof(double));
+				fp = (double *)(buf);
 				if (curCond->op == LIKE_OP)
 				{
-					strcpy(errMsg, REAL_LIKE_ERROR);
+					strcpy(errMsg,
+					    "Can't perform LIKE on real value");
 					msqlDebug(MOD_ERR,
 					  "Can't perform LIKE on real value\n");
 					msqlTrace(TRACE_OUT,"matchRow()");
 					return(-1);
 				}
-				tmp = realMatch(fv,value->val.realVal,
+				tmp = realMatch(*fp,value->val.realVal,
 					curCond->op);
 				break;
 		}
@@ -3773,9 +3304,9 @@ static int compareRows(r1,r2,order,olist)
 		{
 			case INT_TYPE:
 #ifndef _CRAY
-				bcopy4((r1 + *offset +1),buf);
+				(void)bcopy((r1 + *offset +1),buf,sizeof(int));
 				ip1 = (int) * (int*)buf;
-				bcopy4((r2 + *offset +1),buf);
+				(void)bcopy((r2 + *offset +1),buf,sizeof(int));
 				ip2 = (int) * (int*)buf;
 
 				if (ip1 == ip2)
@@ -3800,13 +3331,13 @@ static int compareRows(r1,r2,order,olist)
 			case CHAR_TYPE:
 				cp1 = (char *)r1 + *offset +1;
 				cp2 = (char *)r2 + *offset +1;
-				res = strncmp(cp1,cp2,curOrder->length);
+				res = strcmp(cp1,cp2);
 				break;
 
 			case REAL_TYPE:
-				bcopy8((r1+*offset+1),buf);
+				(void)bcopy((r1+*offset+1),buf,sizeof(double));
 				fp1 = (double) * (double *)(buf);
-				bcopy8((r2+*offset+1),buf);
+				(void)bcopy((r2+*offset+1),buf,sizeof(double));
 				fp2 = (double) * (double *)(buf);
 				if (fp1 == fp2)
 					res = 0;
@@ -3846,7 +3377,7 @@ int msqlInit(DB)
 	(void)sprintf(path,"%s/msqldb/%s",msqlHomeDir,DB);
 	if (stat(path,&buf) < 0)
 	{
-		sprintf(errMsg,BAD_DB_ERROR,DB);
+		sprintf(errMsg,"Unknown database \"%s\"",DB);
 		msqlDebug(MOD_ERR,"Unknown database \"%s\"\n",DB);
 		msqlTrace(TRACE_OUT,"msqlInit()");
 		return(-1);
@@ -3864,15 +3395,12 @@ int msqlCreate(table,fields,DB)
 {
 	char	defPath[255],
 		datPath[255],
-		keyPath[255],
 		line[80];
 	field_t	*curField;
 	int	fd,
 		rem,
 		fieldCount,
-		mode,
 		foundKey;
-	struct	stat sbuf;
 
 	msqlTrace(TRACE_IN,"msqlCreate()");
 
@@ -3880,22 +3408,19 @@ int msqlCreate(table,fields,DB)
 	** Write the catalog entry
 	*/
 	(void)sprintf(defPath,"%s/msqldb/%s/%s.def",msqlHomeDir,DB,table);
-	if (stat(defPath,&sbuf) ==0)
+	fd = open(defPath,O_RDONLY,0);
+	if (fd >= 0)
 	{
-		sprintf(errMsg,TABLE_EXISTS_ERROR,table);
+		(void)close(fd);
+		sprintf(errMsg,"Table \"%s\" exists",table);
 		msqlDebug(MOD_ERR,"Table \"%s\" exists\n",table);
 		msqlTrace(TRACE_OUT,"msqlCreate()");
 		return(-1);
 	}
-
-	mode = O_WRONLY | O_CREAT;
-#ifdef 	O_BINARY
-	mode |= O_BINARY;
-#endif
-	fd = open(defPath, mode, 0600);
+	fd = open(defPath,O_WRONLY | O_CREAT, 0600);
 	if (fd < 0)
 	{
-		sprintf(errMsg,TABLE_FAIL_ERROR,table);
+		sprintf(errMsg,"Can't create table \"%s\"",table);
 		msqlDebug(MOD_ERR,"Can't create table \"%s\"\n",table);
 		msqlTrace(TRACE_OUT,"msqlCreate()");
 		return(-1);
@@ -3918,10 +3443,8 @@ int msqlCreate(table,fields,DB)
 	}
 	if (fieldCount > MAX_FIELDS)
 	{
-		sprintf(errMsg,TABLE_WIDTH_ERROR,MAX_FIELDS);
+		sprintf(errMsg,"Too many fields in table (%d Max)",MAX_FIELDS);
 		msqlDebug(MOD_ERR,"Too many fields in table (%d Max)\n",MAX_FIELDS);
-		close(fd);
-		unlink(defPath);
 		msqlTrace(TRACE_OUT,"msqlCreate()");
 		return(-1);
 	}
@@ -3936,7 +3459,7 @@ int msqlCreate(table,fields,DB)
 		{
 			(void)close(fd);
 			unlink(defPath);
-			sprintf(errMsg,CATALOG_WRITE_ERROR);
+			sprintf(errMsg,"Error writing catalog");
 			msqlDebug(MOD_ERR,"Error writing catalog\n");
 			msqlTrace(TRACE_OUT,"msqlCreate()");
 			return(-1);
@@ -3950,18 +3473,12 @@ int msqlCreate(table,fields,DB)
 	*/
 	if (foundKey)
 	{
-		(void)sprintf(keyPath,"%s/msqldb/%s/%s.key",msqlHomeDir,DB,
-			table);
-		mode = O_CREAT|O_RDWR;
-#ifdef O_BINARY
-		mode |= O_BINARY;
-#endif
-		fd = open(keyPath, mode, 0600);
+		(void)sprintf(defPath,"%s/msqldb/%s/%s.key",msqlHomeDir,DB,table);
+		fd = open(defPath, O_CREAT|O_RDWR, 0600);
 		if (fd < 0)
 		{
-			sprintf(errMsg,KEY_CREATE_ERROR);
+			sprintf(errMsg,"Creation of key table failed!");
 			msqlDebug(MOD_ERR,"Creation of key table failed!\n");
-			unlink(defPath);
 			msqlTrace(TRACE_OUT,"msqlCreate()");
 			return(-1);
 		}
@@ -3975,17 +3492,12 @@ int msqlCreate(table,fields,DB)
 	
 	(void)sprintf(datPath,"%s/msqldb/%s/%s.dat",msqlHomeDir,DB,table);
 	(void)unlink(datPath);
-	mode = O_CREAT|O_WRONLY;
-#ifdef O_BINARY
-	mode |= O_BINARY;
-#endif
-	fd = open(datPath, mode, 0600);
+	fd = open(datPath,O_CREAT | O_WRONLY, 0600);
 	if (fd < 0)
 	{
 		unlink(datPath);
 		unlink(defPath);
-		unlink(keyPath);
-		sprintf(errMsg,DATA_FILE_ERROR,table);
+		sprintf(errMsg,"Error creating table file for \"%s\"",table);
 		msqlDebug(MOD_ERR,"Error creating table file for \"%s\"\n",table);
 		msqlTrace(TRACE_OUT,"msqlCreate()");
 		return(-1);
@@ -4002,12 +3514,10 @@ int msqlDrop(table,DB)
 	char	*table,
 		*DB;
 {
-	char	path[255],
-		*name;
-	int	fd;
+	char	path[255];
+	FILE	*fp;
 	REG 	cache_t *entry;
 	REG 	int	count;
-	int	mode;
 
 	msqlTrace(TRACE_IN,"msqlDrop()");
 
@@ -4019,11 +3529,7 @@ int msqlDrop(table,DB)
 	while(count < CACHE_SIZE)
 	{
 		entry = tableCache + count;
-		if (*(entry->cname))
-			name = entry->cname;
-		else
-			name = entry->table;
-		if((strcmp(entry->DB,DB)==0)&&(strcmp(name,table)==0))
+		if((strcmp(entry->DB,DB)==0)&&(strcmp(entry->table,table)==0))
 		{
 			msqlDebug(MOD_CACHE,"Clearing cache entry %d (%s:%s)\n",
 				count,DB,table);
@@ -4050,16 +3556,7 @@ int msqlDrop(table,DB)
 #endif
 			close(entry->stackFD);
 			close(entry->dataFD);
-#ifdef NEW_DB
-			if (entry->dbp)
-			{
-				entry->dbp->close(entry->dbp);
-				entry->dbp = NULL;
-			}
-#else
-			if (entry->keyFD >= 0)
-				close(entry->keyFD);
-#endif
+			close(entry->keyFD);
 			break;
 		}
 		count++;
@@ -4069,20 +3566,15 @@ int msqlDrop(table,DB)
 	** Now blow away the table data ,stack file, and key files
 	*/
 	(void)sprintf(path,"%s/msqldb/%s/%s.def",msqlHomeDir,DB,table);
-	mode = O_RDWR;
-#ifdef O_BINARY
-	mode |= O_BINARY;
-#endif
-
-	fd = open(path, mode, 0);
-	if (fd < 0)
+	fp = fopen(path,"r");
+	if (!fp)
 	{
-		sprintf(errMsg,BAD_TABLE_ERROR,table);
+		sprintf(errMsg,"Unknown table \"%s\"",table);
 		msqlDebug(MOD_ERR,"Unknown table \"%s\"\n",table);
 		msqlTrace(TRACE_OUT,"msqlDrop()");
 		return(-1);
 	}
-	(void)close(fd);
+	(void)fclose(fp);
 	unlink(path);
 	(void)sprintf(path,"%s/msqldb/%s/%s.dat",msqlHomeDir,DB,table);
 	unlink(path);
@@ -4104,7 +3596,6 @@ int msqlDelete(table,conds,DB)
 	char	*DB;
 {
 	int	clist[MAX_FIELDS],
-		flist[MAX_FIELDS],
 		rowLen,
 		keyLen,
 		useKey,
@@ -4114,13 +3605,12 @@ int msqlDelete(table,conds,DB)
 	char	*row,
 		active;
 	field_t	*curField;
-	pkey_t	*key = NULL;
+	pkey_t	*key;
 	cache_t	*cacheEntry;
-	cond_t	*curCond;
 
 
 	msqlTrace(TRACE_IN,"msqlDelete()");
-	if((cacheEntry = loadTableDef(table,NULL,DB)) == NULL)
+	if((cacheEntry = loadTableDef(table,DB)) == NULL)
 	{
 		msqlTrace(TRACE_OUT,"msqlDelete()");
 		return(-1);
@@ -4155,16 +3645,6 @@ int msqlDelete(table,conds,DB)
 		if (key->op == EQ_OP)
 		{
 			useKey = 1;
-			curCond = conds;
-			while(curCond)
-			{
-				if (curCond->bool == OR_BOOL)
-				{
-					useKey = 0;
-					break;
-				}
-				curCond = curCond->next;
-			}
 		}
 	}
 
@@ -4195,17 +3675,10 @@ int msqlDelete(table,conds,DB)
 					       msqlTrace(TRACE_OUT,"msqlDelete()");
 						return(-1);
 					}
-					if (cacheEntry->keyFD > 0)
+					if(deleteKey(cacheEntry,rowNum) < 0)
 					{
-#ifdef NEW_DB
-					    if(deleteKey(cacheEntry,key) < 0)
-#else
-					    if(deleteKey(cacheEntry,rowNum) < 0)
-#endif
-					    {
 					       msqlTrace(TRACE_OUT,"msqlDelete()");
 						return(-1);
-					    }
 					}
 					pushBlankPos(cacheEntry,DB,table,
 						rowNum);
@@ -4236,25 +3709,11 @@ int msqlDelete(table,conds,DB)
 					msqlTrace(TRACE_OUT,"msqlDelete()");
 					return(res);
 				}
-				findKeyValue(cacheEntry,row,&key);
-				if (cacheEntry->keyFD > 0)
+				res = deleteKey(cacheEntry,rowNum);
+				if(res < 0)
 				{
-#ifdef NEW_DB
-					res = deleteKey(cacheEntry,key);
-#else
-					res = deleteKey(cacheEntry,rowNum);
-#endif
-					if (key)
-					{
-						freeValue(key->value);
-						key->value=NULL;
-					}
-					if(res < 0)
-					{
-						msqlTrace(TRACE_OUT,
-							"msqlDelete()");
-						return(res);
-					}
+					msqlTrace(TRACE_OUT,"msqlDelete()");
+					return(res);
 				}
 				pushBlankPos(cacheEntry,DB,table,rowNum);
 			}
@@ -4279,7 +3738,7 @@ int msqlInsert(table,fields,DB)
 		rowLen,
 		useKey;
 	u_int	rowNum;
-	u_char	*row;
+	char	*row;
 	REG 	field_t	*curField,
 		*curField2;
 	pkey_t	*key;
@@ -4287,7 +3746,7 @@ int msqlInsert(table,fields,DB)
 
 
 	msqlTrace(TRACE_IN,"msqlInsert()");
-	if((cacheEntry = loadTableDef(table,NULL,DB)) == NULL)
+	if((cacheEntry = loadTableDef(table,DB)) == NULL)
 	{
 		msqlTrace(TRACE_OUT,"msqlInsert()");
 		return(-1);
@@ -4313,7 +3772,9 @@ int msqlInsert(table,fields,DB)
 	{
 		if (!curField->value)
 		{
-			sprintf(errMsg, NO_VALUE_ERROR, curField->name);
+			sprintf(errMsg,
+				"No value specified for field '%s'",
+				curField->name);
 			msqlDebug(MOD_ERR,
 				"No value specified for field '%s'",
 				curField->name);
@@ -4331,7 +3792,8 @@ int msqlInsert(table,fields,DB)
 			if (strcmp(curField->name,curField2->name) == 0 &&
 			    strcmp(curField->table,curField2->table) == 0)
 			{
-				sprintf(errMsg,NON_UNIQ_ERROR, curField->name);
+				sprintf(errMsg,"Field '%s' not unique",
+					curField->name);
 				msqlDebug(MOD_ERR,"Field '%s' not unique",
 					curField->name);
 				msqlTrace(TRACE_OUT,"msqlInsert()");
@@ -4368,7 +3830,8 @@ int msqlInsert(table,fields,DB)
 	{
 		if (readKey(cacheEntry,key) != NO_POS)
 		{
-			sprintf(errMsg,KEY_UNIQ_ERROR, key->name);
+			sprintf(errMsg,"Non unique key value in field '%s'",
+				key->name);
 			msqlDebug(MOD_ERR,"Non unique key value in field '%s'\n",
 				key->name);
 			msqlTrace(TRACE_OUT,"msqlInsert()");
@@ -4387,16 +3850,16 @@ int msqlInsert(table,fields,DB)
 		msqlTrace(TRACE_OUT,"msqlInsert()");
 		return(-1);
 	}
-	if (key)
-	{
-		writeKey(cacheEntry,key,rowNum);
-	}
 	if(writeRow(cacheEntry,NULL,rowNum) < 0)
 	{
 		sprintf(errMsg,"Error on data write");
 		msqlDebug(MOD_ERR,"Error on data write\n");
 		msqlTrace(TRACE_OUT,"msqlInsert()");
 		return(-1);
+	}
+	if (key)
+	{
+		writeKey(cacheEntry,key,rowNum);
 	}
 	
 	sprintf(packet,"1:\n");
@@ -4418,20 +3881,18 @@ int msqlUpdate(table,fields,conds,DB)
 		rowLen,
 		useKey,
 		res;
-	u_int	rowNum,
-		keyRow;
+	u_int	rowNum;
 	char	*row,
 		active;
 	field_t	*curField;
 	pkey_t	*keyCond,
 		*keyField;
-	cond_t	*curCond;
 	cache_t	*cacheEntry;
 	
 
 
 	msqlTrace(TRACE_IN,"msqlUpdate()");
-	if((cacheEntry = loadTableDef(table,NULL,DB)) == NULL)
+	if((cacheEntry = loadTableDef(table,DB)) == NULL)
 	{
 		msqlTrace(TRACE_OUT,"msqlUpdate()");
 		return(-1);
@@ -4473,16 +3934,6 @@ int msqlUpdate(table,fields,conds,DB)
 		if (keyCond->op == EQ_OP)
 		{
 			useKey = 1;
-			curCond = conds;
-			while(curCond)
-			{
-				if (curCond->bool == OR_BOOL)
-				{
-					useKey = 0;
-					break;
-				}
-				curCond = curCond->next;
-			}
 		}
 	}
 
@@ -4502,59 +3953,40 @@ int msqlUpdate(table,fields,conds,DB)
 				}
 				if (res == 1)
 				{
-					curField = fields;
-					while(curField)
-					{
-						if(curField->flags&PRI_KEY_FLAG)
-						{
-							keyField->value =
-								curField->value;
-							break;
-						}
-						curField=curField->next;
-					}
-					if (keyField)
-					{
-					    keyRow=readKey(cacheEntry,keyField);
-					    if(keyRow != NO_POS &&
-						keyRow != rowNum)
-					    {
-						sprintf(errMsg,KEY_UNIQ_ERROR, 
-							keyField->name);
-						msqlDebug(MOD_ERR,
-							KEY_UNIQ_ERROR,
-							keyField->name);
-						msqlTrace(TRACE_OUT,
-							"msqlUpdate()");
-						return(-1);
-					    }
-					}
-#ifdef HAVE_MMAP
-					bcopy(row, cacheEntry->rowBuf,
-						cacheEntry->rowLen);
-					row = (char *)cacheEntry->rowBuf;
-#endif
 					updateValues(row,fields,flist);
 					if (checkNullFields(cacheEntry,row) < 0)
 					{
-					       msqlTrace(TRACE_OUT,
-							"msqlUpdate()");
+					       msqlTrace(TRACE_OUT,"msqlUpdate()");
+						return(-1);
+					}
+					if(writeRow(cacheEntry,row,rowNum) < 0)
+					{
+						sprintf(errMsg,
+							"Error on data write");
+						msqlDebug(MOD_ERR,
+						       "Error on data write\n");
+					       msqlTrace(TRACE_OUT,"msqlUpdate()");
 						return(-1);
 					}
 					if (keyField)
 					{
-						writeKey(cacheEntry, keyField, 
-							rowNum);
-					}
+					    curField = fields;
+					    while(curField)
+					    {
+						if(curField->flags&PRI_KEY_FLAG)
+						{
+							freeValue(
+							    keyField->value);
+							keyField->value =
+								curField->value;
+							writeKey(cacheEntry,
+								keyField,
+								rowNum);
 
-					if(writeRow(cacheEntry,row,rowNum) < 0)
-					{
-						sprintf(errMsg,WRITE_ERROR);
-						msqlDebug(MOD_ERR,
-						       "Error on data write\n");
-					       msqlTrace(TRACE_OUT,
-							"msqlUpdate()");
-						return(-1);
+							break;
+						}
+						curField=curField->next;
+					    }
 					}
 				}
 			}
@@ -4577,11 +4009,6 @@ int msqlUpdate(table,fields,conds,DB)
 			}
 			if (res == 1)
 			{
-#ifdef HAVE_MMAP
-					bcopy(row, cacheEntry->rowBuf,
-						cacheEntry->rowLen);
-					row = (char *)cacheEntry->rowBuf;
-#endif
 				updateValues(row,fields,flist);
 				if (checkNullFields(cacheEntry,row) < 0)
 				{
@@ -4590,7 +4017,7 @@ int msqlUpdate(table,fields,conds,DB)
 				}
 				if(writeRow(cacheEntry,row,rowNum) < 0)
 				{
-					sprintf(errMsg,WRITE_ERROR);
+					sprintf(errMsg,"Error on data write");
 					msqlDebug(MOD_ERR,"Error on data write\n");
 					msqlTrace(TRACE_OUT,"msqlUpdate()");
 					return(-1);
@@ -4602,17 +4029,13 @@ int msqlUpdate(table,fields,conds,DB)
 					{
 						if(curField->flags&PRI_KEY_FLAG)
 						{
-						    if( keyField->value !=
-							curField->value)
-						    {
 							freeValue(
 							    keyField->value);
-						    }
-						    keyField->value =
-							curField->value;
-						    writeKey(cacheEntry,
-							keyField,
-							rowNum);
+							keyField->value =
+								curField->value;
+							writeKey(cacheEntry,
+								keyField,
+								rowNum);
 						}
 						curField=curField->next;
 					}
@@ -4633,7 +4056,7 @@ static void formatPacket(packet,fields)
 	field_t	*fields;
 {
 	char	outBuf[100],
-		bufLen[10];
+		bufLen[4];
 	u_char	*outData;
 	field_t	*curField;
 
@@ -4654,21 +4077,20 @@ static void formatPacket(packet,fields)
 					outData = curField->value->val.charVal;
 					break;
 				case REAL_TYPE:
-					/* Analogy Start */
-					sprintf(outBuf,"%.16g",
+					sprintf(outBuf,"%f",
 					    curField->value->val.realVal);
-					/* Analogy End */
 					outData = (u_char *)outBuf;
 					break;
 			}
-			sprintf(bufLen,"%d:",strlen(outData));
-			strcat(packet,bufLen);
-			strcat(packet,outData);
 		}
 		else
 		{
-			strcat(packet,"-2:");
+			*outBuf = '\0';
+			outData = (u_char *)outBuf;
 		}
+		sprintf(bufLen,"%d:",strlen(outData));
+		strcat(packet,bufLen);
+		strcat(packet,outData);
 		curField = curField->next;
 	}
 	strcat(packet,"\n");
@@ -4730,13 +4152,13 @@ static int checkForPartialMatch(conds)
 	cond_t	*curCond;
 	int	res;
 	
-	res = 1;
+	res = 0;
 	curCond = conds;
 	while(curCond)
 	{
-		if (curCond->value->type == IDENT)
+		if (curCond->value->type != IDENT)
 		{
-			res = 0;
+			res = 1;
 		}
 		if (curCond->bool == OR_BOOL)
 		{
@@ -4760,16 +4182,18 @@ static cache_t *joinTables(table1,table2,conds,DB)
 		*outer,
 		*inner;
 	int	addCond,
-		haveOr = 0,
 		addPartial,
 		oRowNum,
 		iRowNum,
 		clist[MAX_FIELDS],
 		outerClist[MAX_FIELDS],
 		res;
-	cond_t	*newCondHead, 	*newCondTail,
-		*t1CondHead, 	*t1CondTail,
-		*t2CondHead, 	*t2CondTail,
+	cond_t	*newCondHead,
+		*newCondTail,
+		*t1CondHead,
+		*t1CondTail,
+		*t2CondHead,
+		*t2CondTail,
 		*outerConds,
 		*newCond,
 		*curCond,
@@ -4779,10 +4203,10 @@ static cache_t *joinTables(table1,table2,conds,DB)
 		*keyField;
 	char	*oRow,
 		*iRow,
+		*row,
 		active;
-	u_char	*row;
-	pkey_t	*key,
-		*outerKey;
+	pkey_t	key,
+		outerKey;
 
 
         msqlTrace(TRACE_IN,"joinTables()");
@@ -4805,21 +4229,12 @@ static cache_t *joinTables(table1,table2,conds,DB)
 	    addPartial = 0;
 	    curTable = table1;
 	    curField = curTable->def;
-	    if (curCond->bool == OR_BOOL)
-	    {
-		haveOr = 1;
-	    }
-
 	    while(curField)
 	    {
 		if(strcmp(curField->table,curCond->table) == 0)
 		{
 		    if (curCond->value->type == IDENT_TYPE)
 		    {
-			/*
-			** If it's an ident compare, only add the cond
-			** if both idents are in the result table
-			*/
 			tmpField = table1->def;
 			tmpTable = table1;
 			while(tmpField)
@@ -4862,7 +4277,7 @@ static cache_t *joinTables(table1,table2,conds,DB)
 	    }
 	    if (addCond)
 	    {
-		newCond = (cond_t *)fastMalloc(sizeof(cond_t));
+		newCond = (cond_t *)malloc(sizeof(cond_t));
 		(void)bcopy(curCond,newCond,sizeof(cond_t));
 		if (!newCondHead)
 		{
@@ -4879,7 +4294,7 @@ static cache_t *joinTables(table1,table2,conds,DB)
 	     {
 		if (strcmp(curCond->table, table1->table) == 0)
 		{
-			newCond = (cond_t *)fastMalloc(sizeof(cond_t));
+			newCond = (cond_t *)malloc(sizeof(cond_t));
 			(void)bcopy(curCond,newCond,sizeof(cond_t));
 			if(!t1CondHead)
 			{
@@ -4894,7 +4309,7 @@ static cache_t *joinTables(table1,table2,conds,DB)
 		}
 		if (strcmp(curCond->table, table2->table) == 0)
 		{
-			newCond = (cond_t *)fastMalloc(sizeof(cond_t));
+			newCond = (cond_t *)malloc(sizeof(cond_t));
 			(void)bcopy(curCond,newCond,sizeof(cond_t));
 			if(!t2CondHead)
 			{
@@ -4938,7 +4353,7 @@ static cache_t *joinTables(table1,table2,conds,DB)
 
 	/*
 	** Create a table definition for the join result.  We can't do
-	** this earlier as we must know which is the inner and outer table
+	** this earlier as we mus know which is the inner and outer table
 	*/
 	tmpTable = createTmpTable(outer,inner,NULL);
 	if (!tmpTable)
@@ -4955,10 +4370,9 @@ static cache_t *joinTables(table1,table2,conds,DB)
 	/*
 	** See if we can use a key for the inner table
 	**
-	** This gets too ugly with the current condition handling.  This
-	** can wait for the new expression based stuff in 1.1
+	** THIS CODE IS NOT IN USE YET
 	if (table2->keyFD > 0)
-		curField = inner->def;
+		curField = table2->def;
 	else
 		curField = NULL;
 	keyField = NULL;
@@ -4974,6 +4388,7 @@ static cache_t *joinTables(table1,table2,conds,DB)
 				{
 					keyField = curField;
 					keyCond = curCond;
+					break;
 				}
 
 				if (curCond->type == IDENT_TYPE)
@@ -4983,7 +4398,6 @@ static cache_t *joinTables(table1,table2,conds,DB)
 				   	  &&!strcmp(curField->name,
 						curCond->val.identVal->seg2))
 					{
-						keyVal = 
 					}
 				}
 				curCond = curCond->next;
@@ -4991,8 +4405,15 @@ static cache_t *joinTables(table1,table2,conds,DB)
 		}
 		curField = curField->next;
 	}
-	*
+	**
+	**
 	*/
+
+
+	/*
+	** If there's a key we can use work out how we can use it
+	*/
+
 
 	/*
 	** Do an N Squared join of the tables
@@ -5027,18 +4448,6 @@ static cache_t *joinTables(table1,table2,conds,DB)
 		/*
 		** Go ahead and join this row with the inner table
 		*/
-
-		/*
-		**
-		if (keyField)
-		{
-			if (keyCond->type == IDENT_TYPE)
-			{
-				extractValues(oRow,
-			}
-		}
-		**
-		*/
 		iRowNum = 0;
 		while((iRow = readRow(inner,&active,iRowNum++) ))
 		{
@@ -5046,15 +4455,7 @@ static cache_t *joinTables(table1,table2,conds,DB)
 				continue;
 			*row = 1;
 			mergeRows(row+1,outer,oRow,inner,iRow);
-			if (!haveOr)
-			{
-				res=matchRow(tmpTable,row+1,newCondHead,
-					clist);
-			}
-			else
-			{
-				res = 1;
-			}
+			res = matchRow(tmpTable,row+1,newCondHead,clist);
 			if (res < 0)
 			{
         			msqlTrace(TRACE_OUT,"joinTables()");
@@ -5064,8 +4465,7 @@ static cache_t *joinTables(table1,table2,conds,DB)
 			{
 				if(writeRow(tmpTable,NULL,NO_POS) < 0)
 				{
-        				msqlTrace(TRACE_OUT,
-						"joinTables()");
+        				msqlTrace(TRACE_OUT,"joinTables()");
 					freeTmpTable(tmpTable);
 					return(NULL);
 				}
@@ -5083,21 +4483,21 @@ static cache_t *joinTables(table1,table2,conds,DB)
 	{
                 newCond = curCond;
                 curCond = curCond->next;
-                (void)free((char *)newCond);
+                (void)free(newCond);
 	}
 	curCond = t1CondHead;
 	while(curCond)
 	{
                 newCond = curCond;
                 curCond = curCond->next;
-                (void)free((char *)newCond);
+                (void)free(newCond);
 	}
 	curCond = t2CondHead;
 	while(curCond)
 	{
                 newCond = curCond;
                 curCond = curCond->next;
-                (void)free((char *)newCond);
+                (void)free(newCond);
 	}
 	msqlTrace(TRACE_OUT,"joinTables()");
 	return(tmpTable);
@@ -5111,16 +4511,12 @@ char *dupRow(entry,row)
 {
 	char	*new;
 
-	new = (char *)fastMalloc(entry->rowLen);
+	new = (char *)malloc(entry->rowLen);
 	(void)bcopy(row,new,entry->rowLen);
 	return(new);
 }
 
 
-
-#ifndef HAVE_MMAP
-
-	/* The Old Sorting Routine for those without a working mmap() */
 
 cache_t *createSortedTable(entry,order)
 	cache_t	*entry;
@@ -5148,19 +4544,16 @@ cache_t *createSortedTable(entry,order)
 	(void)sprintf(new->resInfo,"'%s (ordered %s)'",new->table,entry->table);
 	if(initTable(entry,FULL_REMAP) < 0)
 	{
-		freeTmpTable(new);
         	msqlTrace(TRACE_OUT,"createSortedTable()");
 		return(NULL);
 	}
 	if (setupOrder(entry,olist,order) < 0)
 	{
-		freeTmpTable(new);
         	msqlTrace(TRACE_OUT,"createSortedTable()");
 		return(NULL);
 	}
 	if (setupFields(entry,flist,entry->def,NULL) < 0)
 	{
-		freeTmpTable(new);
         	msqlTrace(TRACE_OUT,"createSortedTable()");
 		return(NULL);
 	}
@@ -5172,11 +4565,7 @@ cache_t *createSortedTable(entry,order)
 	{
 		rowNum = 0;
 		numRows = 0;
-		if (cur)
-		{
-			(void)free(cur);
-			cur = NULL;
-		}
+		cur = NULL;
 		while((row = readRow(entry,&active,rowNum)))
 		{
 			if (!active)
@@ -5187,9 +4576,13 @@ cache_t *createSortedTable(entry,order)
 			numRows ++;
 			if (!cur)
 			{
+#ifdef HAVE_MMAP
+				cur = row;
+#else
 				if (cur)
 					(void)free(cur);
 				cur = dupRow(entry,row);
+#endif
 				curRowNum = rowNum;
 				rowNum++;
 				continue;
@@ -5199,9 +4592,13 @@ cache_t *createSortedTable(entry,order)
 				if (compareRows(last,row,order,olist) <= 0 ||
 				    !last)
 				{
+#ifdef HAVE_MMAP
+					cur = row;
+#else
 					if (cur)
 						(void)free(cur);
 					cur = dupRow(entry,row);
+#endif
 					curRowNum = rowNum;
 				}
 			}
@@ -5221,163 +4618,21 @@ cache_t *createSortedTable(entry,order)
 				curField->value = NULL;
 				curField = curField->next;
 			}
+#ifdef HAVE_MMAP
+			last = cur;
+#else
 			if (last)
 			{
 				(void)free(last);
 			}
 			last = dupRow(entry,cur);
+#endif
 		}
 	}
-	if (last)
-		(void)free(last);
        	msqlTrace(TRACE_OUT,"createSortedTable()");
 	return(new);
 }
 
-#else
-
-	/* 
-	** The new sorting routine for those with mmap()
-	**
-	** This is an algorithm I came up with just to do things a bit
-	** faster (i.e. less shuffles and a rapid set reduction).
-	** Call it bambi sort for now :-)
-	*/
-
-bSwap(entry, low, high)
-	cache_t	*entry;
-	u_int	low,
-		high;
-{
-	char	*tmp,
-		lowActive,
-		highActive;
-
-	tmp = readRow(entry,&lowActive,low);
-	bcopy(tmp,qSortRowBuf,entry->rowLen);
-	tmp = readRow(entry,&highActive,high);
-	writeRow(entry, tmp, low);
-	writeRow(entry, qSortRowBuf, high);
-}
-
-
-
-static bSort(entry, order, olist, low, high)
-	cache_t	*entry;
-	order_t	*order;
-	int	*olist;
-	u_int	low,
-		high;
-{
-	u_int 	newHigh = -1,
-		newLow = -1,
-		index;
-	REG char *curRow,
-		*lowRow,
-		*highRow;
-	char	active;
-
-
-	/* can we bail out without doing anything */
-	if (low >= high)
-	{
-		return;
-	}
-
-	/* OK, go for it */
-	lowRow = readRow(entry,&active,low);
-	while (!active && low < high)
-	{
-		low++;
-		lowRow = readRow(entry,&active,low);
-	}
-	if (!active)
-	{
-		return;
-	}
-		
-	highRow = readRow(entry,&active,high);
-	while (!active && high > low)
-	{
-		high--;
-		highRow = readRow(entry,&active,high);
-	}
-	if (!active)
-	{
-		return;
-	}
-	
-	for (index=low; index <= high; index++)
-	{
-		curRow = readRow(entry,&active,index);
-		if(!active)
-		{
-			continue;
-		}
-		if (compareRows(curRow, lowRow, order, olist) < 0)
-		{
-			newLow = index;
-			lowRow = curRow;
-		}
-		if (compareRows(curRow, highRow, order, olist) > 0)
-		{
-			newHigh = index;
-			highRow = curRow;
-		}
-	}
-	if (newLow != -1)
-	{
-		bSwap(entry,low,newLow);
-	}
-	if (newHigh != -1)
-	{
-		if (newHigh == low)
-			bSwap(entry,high,newLow);
-		else
-			bSwap(entry,high,newHigh);
-	}
-	if (high != 0)
-	{
-		bSort(entry, order, olist, low+1, high-1);
-	}
-}
-
-
-
-static int createSortedTable(entry,order)
-	cache_t	*entry;
-	order_t	*order;
-{
-	int	olist[MAX_FIELDS];
-	u_int	numRows;
-
-	msqlTrace(TRACE_IN,"createSortedTable()");
-
-	if(initTable(entry,FULL_REMAP) < 0)
-	{
-		msqlTrace(TRACE_OUT,"createSortedTable()");
-		return(-1);
-	}
-	if (setupOrder(entry,olist,order) < 0)
-	{
-		msqlTrace(TRACE_OUT,"createSortedTable()");
-		return(-1);
-	}
-
-
-	numRows = (entry->size / (entry->rowLen+1));
-	if (numRows > 0)
-	{
-		qSortRowBuf = (char *)malloc(entry->rowLen);
-		bSort(entry, order, olist, 0, numRows > 0 ? numRows-1 : 0);
-		free(qSortRowBuf);
-	}
-
-	msqlTrace(TRACE_OUT,"createSortedTable()");
-	return(0);
-}
-
-#endif
 
 
 int createDistinctTable(entry)
@@ -5416,7 +4671,6 @@ int createDistinctTable(entry)
 			(void)free(cur);
 		cur = dupRow(entry,row);
 #endif
-		rowNum = curRowNum;
 		rowNum = 0;
 		while((row = readRow(entry,&active,rowNum)))
 		{
@@ -5439,11 +4693,6 @@ int createDistinctTable(entry)
 		}
 		curRowNum++;
 	}
-#ifndef HAVE_MMAP
-	if (cur)
-		(void)free(cur);
-#endif
-	return(0);
 }
 
 
@@ -5451,7 +4700,7 @@ int createDistinctTable(entry)
 
 static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 	cache_t	*cacheEntry;
-	tname_t	*tables;
+	tlist_t	*tables;
 	field_t	*fields;
 	cond_t	*conds;
 	int	dest;
@@ -5463,13 +4712,11 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 		rowLen,
 		rowNum,
 		numFields,
-		numMatch,
 		res;
 	char	*row,
 		active,
 		useKey,
 		outBuf[100];
-	cond_t	*curCond;
 	pkey_t	*key;
 	REG 	field_t *curField;
 
@@ -5527,11 +4774,7 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 	if (dest == DEST_CLIENT)
 	{
 		sprintf(packet,"1:%d:\n",numFields);
-		if (writePkt(outSock) < 0)
-		{
-			msqlTrace(TRACE_OUT,"doSelect() write error");
-			return(0);
-		}
+		writePkt(outSock);
 	}
 
 
@@ -5544,21 +4787,10 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 	{
 		if (key->op == EQ_OP)
 		{
-			useKey = 1;
-			curCond = conds;
-			while(curCond)
+			if (conds->next == NULL)
 			{
-				if (curCond->bool == OR_BOOL)
-				{
-					useKey = 0;
-					break;
-				}
-				curCond = curCond->next;
+				useKey = 1;
 			}
-		}
-		if (cacheEntry->keyFD < 0 || !cacheEntry->keyBuf)
-		{
-			useKey = 0;
 		}
 	}
 
@@ -5583,12 +4815,7 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 					{
 						bzero(packet,PKT_LEN);
 						formatPacket(packet,fields);
-						if (writePkt(outSock) < 0)
-						{
-							msqlTrace(TRACE_OUT,
-								"doSelect");
-							return(0);
-						}
+						writePkt(outSock);
 					}
 					else
 					{
@@ -5605,7 +4832,6 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 	else
 	{
 		rowNum = 0;
-		numMatch = 0;
 		while((row = readRow(cacheEntry,&active,rowNum++) ))
 		{
 			if (!active)
@@ -5617,23 +4843,12 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 			}
 			if (res == 1)
 			{
-				if ( (msqlSelectLimit) && 
-				     (++numMatch > msqlSelectLimit) &&
-				     (dest == DEST_CLIENT)
-				   )
-				{
-  					break;
-				}
 				extractValues(row,fields,flist);
 				if (dest == DEST_CLIENT)
 				{
 					bzero(packet,PKT_LEN);
 					formatPacket(packet,fields);
-					if (writePkt(outSock) < 0)
-					{
-						msqlTrace(TRACE_OUT,"doSelect");
-						return(0);
-					}
+					writePkt(outSock);
 				}
 				else
 				{
@@ -5649,11 +4864,7 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 	if (dest == DEST_CLIENT)
 	{
 		sprintf(packet,"-100:\n");
-		if (writePkt(outSock) < 0)
-		{
-			msqlTrace(TRACE_OUT,"doSelect");
-			return(0);
-		}
+		writePkt(outSock);
 
 		/*
 		** Send the field info down the line to the client
@@ -5663,16 +4874,12 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 		{
 			sprintf(outBuf,"%d",curField->length);
 			sprintf(packet,"%d:%s%d:%s1:%d%d:%s1:%s1:%s", 
-				strlen(curField->table), curField->table,
+				strlen(tables->name), tables->name,
 				strlen(curField->name), curField->name, 
 				curField->type,strlen(outBuf), outBuf, 
 				curField->flags & NOT_NULL_FLAG ? "Y":"N", 
 				curField->flags & PRI_KEY_FLAG ? "Y":"N");
-			if (writePkt(outSock) < 0)
-			{
-				msqlTrace(TRACE_OUT,"doSelect");
-				return(0);
-			}
+			writePkt(outSock);
 			curField = curField->next;
 		}
 		sprintf(packet,"-100:\n");
@@ -5688,7 +4895,7 @@ static int doSelect(cacheEntry, tables, fields,conds,dest,tmpTable)
 extern	field_t	*fieldHead;
 
 int msqlSelect(tables,fields,conds,order,DB)
-	tname_t	*tables;
+	tlist_t	*tables;
 	field_t	*fields;
 	cond_t	*conds;
 	order_t	*order;
@@ -5699,9 +4906,8 @@ int msqlSelect(tables,fields,conds,order,DB)
 		*table2,
 		*tmpTable,
 		*prevTable;
-	REG	tname_t	*curTable;
+	REG	tlist_t	*curTable;
 	REG	field_t	*curField;
-	REG	cond_t	*curCond;
 	int	join,
 		foundTable;
 
@@ -5730,53 +4936,20 @@ int msqlSelect(tables,fields,conds,order,DB)
 		qualifyFields(tables->name,fields);
 		qualifyConds(tables->name,conds);
 		qualifyOrder(tables->name,order);
+		curField = fields;
+		while(curField)
+		{
+			if (strcmp(curField->table,tables->name)!=0)
+			{
+				sprintf(errMsg,
+					"Reference to un-selected table \"%s\"",
+					curField->table);
+				return(-1);
+			}
+			curField = curField->next;
+		}
 		join = 0;
 	}
-
-	/*
-	** Ensure that any field or condition refers to fields of 
-	** selected tables
-	*/
-	curField = fields;
-	while(curField)
-	{
-		curTable = tables;
-		while(curTable)
-		{
-			if (strcmp(curField->table,curTable->name) == 0)
-			{
-				break;
-			}
-			curTable = curTable->next;
-		}
-		if (!curTable)
-		{
-			sprintf(errMsg,UNSELECT_ERROR,curField->table);
-			return(-1);
-		}
-		curField = curField->next;
-	}
-	curCond = conds;
-	while(curCond)
-	{
-		curTable = tables;
-		while(curTable)
-		{
-			if (strcmp(curCond->table,curTable->name) == 0)
-			{
-				break;
-			}
-			curTable = curTable->next;
-		}
-		if (!curTable)
-		{
-			sprintf(errMsg,UNSELECT_ERROR,curCond->table);
-			return(-1);
-		}
-		curCond = curCond->next;
-	}
-
-
 
 	curField = fields;
 	while (curField)
@@ -5785,7 +4958,8 @@ int msqlSelect(tables,fields,conds,order,DB)
 		{
 			if (join)
 			{
-				sprintf(errMsg, UNQUAL_JOIN_ERROR, 
+				sprintf(errMsg,
+					"Unqualified field \"%s\" in join",
 					curField->name);
 				return(-1);
 			}
@@ -5805,7 +4979,8 @@ int msqlSelect(tables,fields,conds,order,DB)
 		}
 		if (!foundTable)
 		{
-			sprintf(errMsg,UNSELECT_ERROR, curField->table);
+			sprintf(errMsg,"Reference to un-selected table \"%s\"",
+				curField->table);
 			return(-1);
 		}
 		curField = curField->next;
@@ -5823,8 +4998,7 @@ int msqlSelect(tables,fields,conds,order,DB)
 		{
 			if (curTable == tables)
 			{
-				table1 = loadTableDef(curTable->name,
-					curTable->cname,DB);
+				table1 = loadTableDef(curTable->name,DB);
 				if (!table1)
 				{
 					msqlTrace(TRACE_OUT,"msqlSelect()");
@@ -5836,8 +5010,7 @@ int msqlSelect(tables,fields,conds,order,DB)
 					return(-1);
 				}
 				curTable = curTable->next;
-				table2 = loadTableDef(curTable->name,
-					curTable->cname,DB);
+				table2 = loadTableDef(curTable->name,DB);
 				if (!table2)
 				{
 					msqlTrace(TRACE_OUT,"msqlSelect()");
@@ -5864,8 +5037,7 @@ int msqlSelect(tables,fields,conds,order,DB)
 			else
 			{
 				table1 = tmpTable;
-				table2 = loadTableDef(curTable->name,
-					curTable->cname,DB);
+				table2 = loadTableDef(curTable->name,DB);
 				if (!table2)
 				{
 					msqlTrace(TRACE_OUT,"msqlSelect()");
@@ -5909,8 +5081,7 @@ int msqlSelect(tables,fields,conds,order,DB)
 
 	if (!tmpTable)
 	{
-		if((cacheEntry = loadTableDef(tables->name,tables->cname,
-			DB)) == NULL)
+		if((cacheEntry = loadTableDef(tables->name,DB)) == NULL)
 		{
 			msqlTrace(TRACE_OUT,"msqlSelect()");
 			return(-1);
@@ -5919,7 +5090,7 @@ int msqlSelect(tables,fields,conds,order,DB)
 	else
 	{
 		cacheEntry = tmpTable;
-		/* conds = NULL; */
+		conds = NULL;
 	}
 	if (selectWildcard)
 	{
@@ -5970,7 +5141,7 @@ int msqlSelect(tables,fields,conds,order,DB)
 	*/
 	if (selectDistinct)
 	{
-		if (createDistinctTable(cacheEntry) < 0)
+		if (createDistinctTable(cacheEntry,NULL,fields) < 0)
 		{
 			msqlTrace(TRACE_OUT,"msqlSelect()");
 			return(-1);
@@ -5984,13 +5155,8 @@ int msqlSelect(tables,fields,conds,order,DB)
 	{
 		cache_t	*sortTable;
 
-
-#ifndef HAVE_MMAP
-		/* 
-		** If you don't have mmap() you'll be using the old
-		** sorting code
-		*/
 		sortTable = createSortedTable(cacheEntry,order);
+
 		if (cacheEntry->result)
 		{
 			freeTmpTable(cacheEntry);
@@ -6001,21 +5167,6 @@ int msqlSelect(tables,fields,conds,order,DB)
 			return(-1);
 		}
 		cacheEntry = sortTable;
-
-#else
-		/*
-		** If mmap() is in use you'll be using the new sorting
-		** code that does the sort in place
-		*/
-		if (createSortedTable(cacheEntry,order) < 0)
-		{
-			if (cacheEntry->result)
-				freeTmpTable(cacheEntry);
-			msqlTrace(TRACE_OUT,"msqlSelect()");
-			return(-1);
-		}
-#endif
-
 	}
 
 
@@ -6024,8 +5175,6 @@ int msqlSelect(tables,fields,conds,order,DB)
 	*/
 	if (doSelect(cacheEntry,tables,fields,NULL,DEST_CLIENT,NULL)<0)
 	{
-		if (cacheEntry->result)
-			freeTmpTable(cacheEntry);
 		msqlTrace(TRACE_OUT,"msqlSelect()");
 		return(-1);
 	}
@@ -6100,52 +5249,6 @@ void msqlDropDB(sock,db)
 	cache_t	*entry;
 
 	/*
-	** Invalidate any cache entries that are for this DB
-	*/
-	index = 0;
-	while(index < CACHE_SIZE)
-	{
-		entry = tableCache + index++;
-		if (strcmp(entry->DB,db) == 0)
-		{
-			freeTableDef(entry->def);
-			entry->def = NULL;
-			*(entry->DB) = 0;
-			*(entry->table) = 0;
-			entry->age = 0;
-			safeFree(entry->rowBuf);
-			safeFree(entry->keyBuf);
-			close(entry->stackFD);
-			close(entry->dataFD);
-#ifdef NEW_DB
-			if (entry->dbp)
-			{
-				entry->dbp->close(entry->dbp);
-				entry->dbp = NULL;
-			}
-#else
-			if (entry->keyFD >= 0)
-				close(entry->keyFD);
-#endif
-
-#ifdef HAVE_MMAP
-			if (entry->dataMap != (caddr_t) NULL)
-			{
-				munmap(entry->dataMap,entry->size);
-				entry->dataMap = NULL;
-				entry->size = 0;
-			}
-			if (entry->keyMap != (caddr_t) NULL)
-			{
-				munmap(entry->keyMap,entry->keySize);
-				entry->keyMap = NULL;
-				entry->keySize = 0;
-			}
-#endif
-		}
-	}
-
-	/*
 	** See if the directory exists
 	*/
 
@@ -6182,6 +5285,42 @@ void msqlDropDB(sock,db)
 	}
 	closedir(dirp);
 
+	/*
+	** Invalidate any cache entries that are for this DB
+	*/
+	index = 0;
+	while(index < CACHE_SIZE)
+	{
+		entry = tableCache + index++;
+		if (strcmp(entry->DB,db) == 0)
+		{
+			freeTableDef(entry->def);
+			entry->def = NULL;
+			*(entry->DB) = 0;
+			*(entry->table) = 0;
+			entry->age = 0;
+			safeFree(entry->rowBuf);
+			safeFree(entry->keyBuf);
+			close(entry->stackFD);
+			close(entry->dataFD);
+			close(entry->keyFD);
+#ifdef HAVE_MMAP
+			if (entry->dataMap != (caddr_t) NULL)
+			{
+				munmap(entry->dataMap,entry->size);
+				entry->dataMap = NULL;
+				entry->size = 0;
+			}
+			if (entry->keyMap != (caddr_t) NULL)
+			{
+				munmap(entry->keyMap,entry->keySize);
+				entry->keyMap = NULL;
+				entry->keySize = 0;
+			}
+#endif
+		}
+	}
 	sprintf(packet,"-100:\n");
 	writePkt(sock);
 }
+

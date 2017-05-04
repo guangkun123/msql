@@ -2,8 +2,7 @@
 **	acl.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -114,10 +113,9 @@ int msqlLoadAcl(verbose)
 	{
 		if (verbose)
 		{
-			perror("Warning : Couldn't open ACL file");
-			fprintf(stderr,"Without an ACL file global access is Read/Write\n\n");
+			perror("Couldn't open ACL file");
 		}
-		sprintf(packet,"-1:Warning - Couldn't open ACL file\n");
+		sprintf(packet,"-1:Couldn't open ACL file\n");
 		return(-1);
 	}
 
@@ -161,7 +159,6 @@ int msqlLoadAcl(verbose)
 				sprintf(packet,
 				   "-1:Bad entry header location at line %d\n"
 					,lineNum);
-				fclose(fp);
 				return(-1);
 			}
 			newEntry = 0;
@@ -173,7 +170,6 @@ int msqlLoadAcl(verbose)
 				printf(packet,
 					"-1:Missing database name at line %d\n",
 					lineNum);
-				fclose(fp);
 				return(-1);
 			}
 			new = (acl_t *)malloc(sizeof(acl_t));
@@ -199,7 +195,6 @@ int msqlLoadAcl(verbose)
 				sprintf(packet, 
 				    "-1:Bad entry header location at line %d\n"
 					,lineNum);
-				fclose(fp);
 				return(-1);
 			}
 			if (new->read)
@@ -249,7 +244,6 @@ int msqlLoadAcl(verbose)
 				sprintf(packet,
 				    "-1:Bad entry header location at line %d\n"
 					,lineNum);
-				fclose(fp);
 				return(-1);
 			}
 			if (new->write)
@@ -299,7 +293,6 @@ int msqlLoadAcl(verbose)
 				sprintf(packet,
 				    "-1:Bad entry header location at line %d\n"
 					,lineNum);
-				fclose(fp);
 				return(-1);
 			}
 			if (new->host)
@@ -349,7 +342,6 @@ int msqlLoadAcl(verbose)
 				sprintf(packet,
 				    "-1:Bad entry header location at line %d\n"
 					,lineNum);
-				fclose(fp);
 				return(-1);
 			}
 			if (new->access)
@@ -390,7 +382,6 @@ int msqlLoadAcl(verbose)
 				sprintf(packet,
 				    "-1:Bad entry header location at line %d\n"
 					,lineNum);
-				fclose(fp);
 				return(-1);
 			}
 			if (new->option)
@@ -429,7 +420,6 @@ int msqlLoadAcl(verbose)
 			sprintf(packet,
 				"-1:Unknown ACL command \"%s\" at line %d\n", 
 				tok,lineNum);
-			fclose(fp);
 			return(-1);
 			break;
 
@@ -438,8 +428,6 @@ int msqlLoadAcl(verbose)
 		fgets(buf,sizeof(buf),fp);
 		lineNum++;
 	}
-	fclose(fp);
-	return(0);
 }
 
 
@@ -517,8 +505,6 @@ static int matchToken(pattern,tok)
 	{
 		if (*(cp+1) == 0)	/* match anything */
 		{
-			(void)free(buf1);
-			(void)free(buf2);
 			return(1);
 		}
 		length1 = strlen(cp)-1;
@@ -767,7 +753,7 @@ msqlSetPerms(perms)
 int msqlCheckPerms(access)
 	int	access;
 {
-	return( (accessPerms & access) == access);
+	return( accessPerms & access);
 }
 
 

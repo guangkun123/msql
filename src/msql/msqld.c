@@ -2,8 +2,7 @@
 **	msqld.c	- 
 **
 **
-** Copyright (c) 1993-95  David J. Hughes
-** Copyright (c) 1995  Hughes Technologies Pty Ltd
+** Copyright (c) 1993  David J. Hughes
 **
 ** Permission to use, copy, and distribute for non-commercial purposes,
 ** is hereby granted without fee, providing that the above copyright
@@ -29,7 +28,6 @@
 #include <stdlib.h>
 #include <varargs.h>
 
-#include "version.h"
 
 #include "common/portability.h"
 
@@ -52,7 +50,6 @@
 #include "common/debug.h"
 
 #include "msql_priv.h"
-#include "errmsg.h"
 
 
 
@@ -60,6 +57,7 @@
 extern  char    *yytext;
 extern	int	yylineno;
 extern	int	yydebug;
+extern	int	titleFlag;
 
 extern	char	errMsg[];
 
@@ -67,8 +65,6 @@ int	curSock,
 	IPsock,
 	UNIXsock,
 	numCons;
-
-char	*unixPort;
 
 #define MAX_SOCK_NUM	100
 
@@ -86,7 +82,6 @@ void sigTrap(sig)
 {
 	int	clientSock;
 
-	signal(sig,SIG_IGN);
 	fprintf(stderr,"\nHit by a sig %d\n\n",sig);
 	clientSock = 3;
 	printf("\n\nForced server shutdown due to bad signal!\n\n");
@@ -105,7 +100,7 @@ void sigTrap(sig)
 #ifdef HAVE_SYS_UN_H
 	shutdown(UNIXsock,2);
 	close(UNIXsock);
-	unlink(unixPort);
+	unlink(MSQL_UNIX_ADDR);
 #endif
 	printf("\n");
 	abort();
@@ -147,12 +142,8 @@ sendOK(fd)
 initServer()
 {
 	int	sock,
-		tcpPort,
-		addrLen,
-		opt;
+		addrLen;
 	struct	sockaddr_in	IPaddr;
-	struct	servent		*serv_ptr;
-	char	*envVar;
 
 #ifdef HAVE_SYS_UN_H
 	struct	sockaddr_un	UNIXaddr;
@@ -161,31 +152,17 @@ initServer()
 	/*
 	** Create an IP socket
 	*/
-	tcpPort = MSQL_PORT;
-	if ((serv_ptr = getservbyname("msql", "tcp")))
-	{
-		tcpPort = ntohs(serv_ptr->s_port);
-	}
-	if ((envVar = getenv("MSQL_TCP_PORT")))
-	{
-		tcpPort = atoi(envVar);
-	}
-	msqlDebug(MOD_GENERAL,"IP Socket is %d\n",tcpPort);
+	msqlDebug(MOD_GENERAL,"IP Socket is %d\n",MSQL_PORT);
 	IPsock = socket(AF_INET, SOCK_STREAM, 0);
 	if (IPsock < 0)
 	{
 		perror("Can't start server : IP Socket ");
 		exit(1);
 	}
-#ifdef SO_REUSEADDR
-	opt = 1;
-	setsockopt(IPsock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
-#endif
-
 	(void)bzero(&IPaddr, sizeof(IPaddr));
 	IPaddr.sin_family = AF_INET;
 	IPaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	IPaddr.sin_port = htons(tcpPort);
+	IPaddr.sin_port = htons(MSQL_PORT);
 	if (bind(IPsock, (struct sockaddr *)&IPaddr, sizeof(IPaddr)) < 0)
 	{
 		perror("Can't start server : IP Bind ");
@@ -197,13 +174,7 @@ initServer()
 	/*
 	** Create the UNIX socket
 	*/
-	unixPort = MSQL_UNIX_ADDR;
-	if ((envVar = getenv("MSQL_UNIX_PORT")))
-	{
-		unixPort = envVar;
-	}
-	
-	msqlDebug(MOD_GENERAL,"UNIX Socket is %s\n",unixPort);
+	msqlDebug(MOD_GENERAL,"UNIX Socket is %s\n",MSQL_UNIX_ADDR);
 	UNIXsock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (UNIXsock < 0)
 	{
@@ -212,8 +183,8 @@ initServer()
 	}
 	(void)bzero(&UNIXaddr, sizeof(UNIXaddr));
 	UNIXaddr.sun_family = AF_UNIX;
-	strcpy(UNIXaddr.sun_path, unixPort);
-	unlink(unixPort);
+	strcpy(UNIXaddr.sun_path, MSQL_UNIX_ADDR);
+	unlink(MSQL_UNIX_ADDR);
 	if (bind(UNIXsock, (struct sockaddr *)&UNIXaddr, sizeof(UNIXaddr)) < 0)
 	{
 		perror("Can't start server : UNIX Bind ");
@@ -230,7 +201,6 @@ RETSIGTYPE puntServer(sig)
 {
 	int	clientSock;
 
-	signal(sig,SIG_IGN);
 	clientSock = 3;
 	if (sig == -1)
 	{
@@ -256,7 +226,7 @@ RETSIGTYPE puntServer(sig)
 #ifdef HAVE_SYS_UN_H
 	shutdown(UNIXsock,2);
 	close(UNIXsock);
-	unlink(unixPort);
+	unlink(MSQL_UNIX_ADDR);
 #endif
 	printf("\n");
 	dropCache();
@@ -307,7 +277,6 @@ static setConnectionState(sock, fds)
 RETSIGTYPE puntClient(sig)
 	int	sig;
 {
-	signal(sig, puntClient);
 	if (clientFdSet)
 	{
 		FD_CLR(curComSock, clientFdSet);
@@ -327,6 +296,42 @@ RETSIGTYPE puntClient(sig)
 }
 
 
+char	*Arg0;
+
+void setProcTitle(va_alist)
+        va_dcl
+{
+	va_list args;
+	char    msg[1024],
+		*fmt;
+	int     module;
+
+	if (!titleFlag)
+		return;
+	va_start(args);
+	fmt = (char *)va_arg(args, char *);
+	if (!fmt)
+		return;
+	strcpy(msg,"mSQL : ");
+	(void)vsprintf(msg + strlen(msg),fmt,args);
+	va_end(args);
+	if (strlen(msg) > 50)
+	{
+		*(msg+50) = 0;
+	}
+	strcpy(Arg0,BLANK_ARGV);
+	strcpy(Arg0,msg);
+}
+
+initProcTitle(argv)
+	char	*argv[];
+{
+	
+	if (!titleFlag)
+		return;
+	Arg0 = argv[0];
+	setProcTitle("Starting");
+} 
 
 setupSignals()
 {
@@ -347,12 +352,6 @@ setupSignals()
 #endif
 #ifdef SIGPIPE
 	signal(SIGPIPE,puntClient);
-#endif
-#ifdef SIGTERM
-	signal(SIGTERM,puntServer);
-#endif
-#ifdef SIGHUP
-	signal(SIGHUP,SIG_IGN);
 #endif
 }
 
@@ -380,6 +379,22 @@ main(argc,argv)
 	FILE	*pidFile;
 
 	/*
+	** See if we have to re-exec ourselves for procTitle space
+	*/
+	if (titleFlag)
+	{
+		if (*argv[0] != ' ')
+		{
+			prog = argv[0];
+			argv[0] = BLANK_ARGV;
+			execvp(prog,argv,argc);
+			perror("Exec failed");
+			exit(1);
+		}
+	}
+
+
+	/*
 	** We have enough space for fiddling with the argv, continue
 	*/
 	msqlHomeDir = (char *)getenv("MSQL_HOME");
@@ -390,11 +405,11 @@ main(argc,argv)
 	umask(0);
 	numCons=0;
 	chdir(msqlHomeDir);
-	printf("\n\nmSQL Server %s starting ...\n\n",SERVER_VERSION);
 	initDebug();
 	initNet();
 	initServer();
 	initBackend();
+	initProcTitle(argv);
 	(void)sprintf(path,"%s/msqld.pid",PID_DIR);
 	pidFile = fopen(path,"w");
 	if (!pidFile)
@@ -406,20 +421,21 @@ main(argc,argv)
 		fprintf(pidFile,"%d",getpid());
 		fclose(pidFile);
 	}
-	chmod(path,0644);
+	chmod(path,0744);
 	umask(0);
 	setupSignals();
 	msqlLoadAcl(1);
 	(void)bzero(&clientFDs,sizeof(fd_set));
-	(void)bzero(conArray,sizeof(conArray));
 	msqlDebug(MOD_GENERAL,"miniSQL debug mode.  Waiting for connections.\n");
 	while(1)
 	{
+		(void)bzero(&readFDs,sizeof(fd_set));
 		(void)bcopy(&clientFDs,&readFDs,sizeof(fd_set));
 		FD_SET(IPsock,&readFDs);
 #ifdef HAVE_SYS_UN_H
 		FD_SET(UNIXsock,&readFDs);
 #endif
+		setProcTitle("Idle - %d clients",numCons);
 		if(select(MAX_SOCK_NUM+1,&readFDs,0,0,0) < 0)
 			continue;
 
@@ -440,10 +456,8 @@ main(argc,argv)
 #endif
 		if (sock)
 		{
-			struct	sockaddr_in 	cAddr;
-			struct	sockaddr	dummy;
-			int	cAddrLen,
-				dummyLen;
+			struct	sockaddr_in cAddr;
+			int	cAddrLen;
 
 			cAddrLen = sizeof(struct sockaddr_in);
 			newSock = accept(sock, (struct sockaddr *)&cAddr, 
@@ -451,12 +465,6 @@ main(argc,argv)
 			if(newSock < 0)
 			{
 				perror("Error in accept ");
-				continue;
-			}
-			dummyLen = sizeof(struct sockaddr);
-			if (getsockname(newSock,&dummy, &dummyLen) < 0)
-			{
-				perror("Error on new connection socket");
 				continue;
 			}
 			if (conArray[newSock].db)
@@ -474,7 +482,7 @@ main(argc,argv)
 			if (numCons > MAX_CON)
 			{
 				numCons--;
-				sendError(newSock,CON_COUNT_ERROR);
+				sendError(newSock,"Too many connections");
 				shutdown(newSock,2);
 				close(newSock);
 				continue;
@@ -505,11 +513,12 @@ main(argc,argv)
 				    AF_INET);
 				if (!hp)
 				{
-					sendError(newSock, BAD_HOST_ERROR);
+					sendError(newSock,
+					"Can't get hostname for your address");
 					error = 1;
 					shutdown(newSock,2);
 					close(newSock);
-					numCons --;
+					
 				}
 				else
 				{
@@ -529,8 +538,6 @@ main(argc,argv)
 				msqlDebug(MOD_GENERAL,"Host = UNIX domain\n");
 			}
 
-			setConnectionState(newSock,&clientFDs);
-
 			if (!error)
 			{
 				opt=1;
@@ -542,7 +549,7 @@ main(argc,argv)
 				writePkt(newSock);
 				if (readPkt(newSock) <=0)
 				{
-					sendError(newSock,HANDSHAKE_ERROR);
+					sendError(newSock,"Bad handshake");
 					shutdown(newSock,2);
 					close(newSock);
 					conArray[newSock].host = NULL;
@@ -550,14 +557,13 @@ main(argc,argv)
                                         	sizeof(struct sockaddr));
                                 	bzero(&conArray[newSock].
                                         	remote,sizeof(struct sockaddr));
-					numCons--;
+
 				}
 				else
 				{
 					FD_SET(newSock,&clientFDs);
 					uname = (char *)strtok(packet,"\n");
 					msqlDebug(MOD_GENERAL,"User = %s\n",uname);
-					safeFree(conArray[newSock].user);
 					conArray[newSock].user = (char *)
 						strdup(uname);
 					sprintf(packet,"-100:\n");
@@ -580,35 +586,24 @@ main(argc,argv)
 		    {
 			setConnectionState(comSock,&clientFDs);
 			if (readPkt(comSock) <= 0)
-			{
-				msqlDebug(MOD_GENERAL,
-					"Command read on sock %d failed!\n",
-					comSock);
 				command = QUIT;
-			}
 			else
-			{
 				command = atoi(packet);
-			}
 			msqlDebug(MOD_GENERAL,"Command on sock %d = %d (%s)\n",
 				comSock, command, comTable[command]);
 			switch(command)
 			{
 			    case INIT_DB:
+				setProcTitle("Init DB");
 				cp=(char *)strtok(packet+2,"\n\r");
-				if (!cp)
-				{
-					sendError(comSock,NO_DB_ERROR);
-					break;
-				}
 				strcpy(dbname,cp);
 				msqlDebug(MOD_GENERAL,"DBName = %s\n", dbname);
 				conArray[comSock].access = msqlCheckAccess(
 					dbname, conArray + comSock);
 				if(conArray[comSock].access == NO_ACCESS)
 				{
-					sendError(comSock, 
-						ACCESS_DENIED_ERROR);
+					sendError(comSock,
+						"Access to database denied");
 					break;
 				}
 				if (msqlInit(dbname) < 0)
@@ -627,7 +622,8 @@ main(argc,argv)
 			    case QUERY:
 				if (!conArray[comSock].db)
 				{
-					sendError(comSock,NO_DB_ERROR);
+					sendError(comSock,
+						"No Database Selected");
 					break;
 				}
 				curSock = comSock;
@@ -643,14 +639,17 @@ main(argc,argv)
 				break;
 
 			    case DB_LIST:
+				setProcTitle("DB List");
 				curSock = comSock;
 				msqlListDBs(comSock);
 				break;
 
 			    case TABLE_LIST:
+				setProcTitle("Table List");
 				if (!conArray[comSock].db)
 				{
-					sendError(comSock, NO_DB_ERROR);
+					sendError(comSock,
+						"No Database Selected");
 					break;
 				}
 				curSock = comSock;
@@ -658,23 +657,19 @@ main(argc,argv)
 				break;
 
 			    case FIELD_LIST:
+				setProcTitle("Field List");
 				if (!conArray[comSock].db)
 				{
-					sendError(comSock,NO_DB_ERROR);
+					sendError(comSock,
+						"No Database Selected");
 					break;
 				}
 				cp=(char *)strtok(packet+2,
 					"\n\r");
-				if (!cp)
-				{
-					sendError(comSock,NO_TABLE_ERROR);
-					break;
-				}
 				arg = (char *)strdup(cp);
 				curSock = comSock;
 				msqlListFields(comSock,
 					arg,conArray[comSock].db);
-				safeFree(arg);
 				break;
 
 			    case QUIT:
@@ -693,45 +688,36 @@ main(argc,argv)
 				break;
 		
 			    case CREATE_DB:
+				setProcTitle("Create DB");
 				if (!msqlCheckLocal(conArray + comSock))
 				{
-					sendError(comSock,PERM_DENIED_ERROR);
+					sendError(comSock,"Permission denied");
 					break;
 				}
 				cp=(char *)strtok(packet+2,
 					"\n\r");
-				if (!cp)
-				{
-					sendError(comSock,NO_DB_ERROR);
-					break;
-				}
 				arg = (char *)strdup(cp);
 				msqlCreateDB(comSock,arg);
-				safeFree(arg);
 				break;
 
 			    case DROP_DB:	
+				setProcTitle("Drop DB");
 				if (!msqlCheckLocal(conArray + comSock))
 				{
-					sendError(comSock,PERM_DENIED_ERROR);
+					sendError(comSock,"Permission denied");
 					break;
 				}
 				cp=(char *)strtok(packet+2,
 					"\n\r");
-				if (!cp)
-				{
-					sendError(comSock,NO_DB_ERROR);
-					break;
-				}
 				arg = (char *)strdup(cp);
 				msqlDropDB(comSock,arg);
-				safeFree(arg);
 				break;
 
 			    case RELOAD_ACL:
+				setProcTitle("Reload ACL");
 				if (!msqlCheckLocal(conArray + comSock))
 				{
-					sendError(comSock,PERM_DENIED_ERROR);
+					sendError(comSock,"Permission denied");
 					break;
 				}
 				(void)sprintf(packet,"-100:\n");
@@ -740,9 +726,10 @@ main(argc,argv)
 				break;
 
 			    case SHUTDOWN:
+				setProcTitle("Shutdown");
 				if (!msqlCheckLocal(conArray + comSock))
 				{
-					sendError(comSock,PERM_DENIED_ERROR);
+					sendError(comSock,"Permission denied");
 					break;
 				}
 				sprintf(packet,"-100:\n");
@@ -752,7 +739,8 @@ main(argc,argv)
 				break;
 
 			    default:
-				sendError(comSock, UNKNOWN_COM_ERROR);
+				sendError(comSock,
+					"Unknown command");
 				break;
 			}
 			msqlDebug(MOD_GENERAL,"Command Processed!\n");

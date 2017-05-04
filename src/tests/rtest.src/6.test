@@ -1,20 +1,5 @@
-# Do some joins 
+# Update a value and redisplay
 
+update test set age = 26 where user = 'paulp'\p\g
 
-select test2.fullname, test.age
-        from test2,test
-        where test.age > 20 
-\p\g
-
-
-select test2.fullname, test.age
-        from test2,test
-        where test2.user like 'B%'
-\p\g
-
-
-select test2.fullname, test.age
-        from test2,test
-        where test2.user = test.user
-\p\g
-
+select * from test \p\g

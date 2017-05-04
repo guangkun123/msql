@@ -23,11 +23,6 @@ echo
 echo
 echo "Interactive configuration section"
 echo 
-echo "	Note : Any prompt below that asks for a directory requires an"
-echo "	       absolute pathname.  A relative pathname such as ../foo"
-echo "	       or symbolic paths such as ~user/msql will not work"
-echo
-echo 
 $ECHO_N "	Top of install tree ? [/usr/local/Minerva] $ECHO_C"
 read INST_TOP
 if test "$INST_TOP." = "."
@@ -76,9 +71,8 @@ echo "Automatic configuration section"
 echo
 
 cp conf/site.mm.in .
-chmod u+w site.mm.in
 
-. conf/configure -v
+. conf/configure
 
 if test "$LEX." = "flex."
 then
@@ -199,7 +193,7 @@ fi
 cd ..
 
 
-ARCH=`cat arch-info`
+
 mv site.mm site.mm.$$
 sed "	s,@INST_TOP@,$INST_TOP,
 	s,@FLEX@,$FLEX,
@@ -210,7 +204,6 @@ sed "	s,@INST_TOP@,$INST_TOP,
 	s,@ROOT_EXEC@,$ROOT_EXEC,
 	s,@ROOT@,$ROOT,
 	s,@PID_DIR@,$PID_DIR,
-	s,@ARCH@,$ARCH,
 " < site.mm.$$ > site.mm
 rm site.mm.$$
 

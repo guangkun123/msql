@@ -40,19 +40,10 @@
 #define EX_CONSCHECK 3
 
 char	usage[] = "\n\n\
-usage: 	%s [-h host] [-vtdc] database [table]\n\n\
-	Produce an ASCII dump of a database table or an entire database\n\n\
-	-h	Use mSQL server on remote host\n\
-	-v	Verbose mode\n\
-	-t	Do not produce the table creation information\n\
-	-d	Do not produce the data insertion information\n\
-	-c	Complete INSERT statements (including field names)\n\
-\n";
+usage: 	%s [-h host] [-v] database [table]\n\n\
+	Produce an ASCII dump of a database table or an entire database\n\n";
 
-int	verbose = 0,
-	tFlag = 0,
-	cFlag = 0,
-	dFlag = 0;
+int	verbose = 0;
 int	sock = -1;
 char	insert_pat[5 * 1024];
 
@@ -86,13 +77,6 @@ char *escapeText(str)
 		numQuotes++;
 		cp++;
 	}
-	cp = str;
-	while((cp = (char *)index(cp,'\\')))
-	{
-		numQuotes++;
-		cp++;
-	}
-
 	if (numQuotes)
 	{
 		tmp = (char *)malloc(strlen(str)+numQuotes+1);
@@ -100,7 +84,7 @@ char *escapeText(str)
 		cp = str;
 		while(*cp)
 		{
-			if (*cp == '\'' || *cp == '\\')
+			if (*cp == '\'')
 				*cp2++='\\';
 			*cp2++ = *cp++;
 		}
@@ -180,63 +164,47 @@ int getTableStructure(table)
 		exit(EX_MSQLERR);
 	}
 
-	if (!tFlag)
-	{
-		printf("\n#\n# Table structure for table '%s'\n#\n",table);
-		printf("CREATE TABLE %s (\n", table);
-	}
-
-	if (cFlag)
-		sprintf(insert_pat, "INSERT INTO %s (", table);
-	else
-		sprintf(insert_pat, "INSERT INTO %s VALUES (", table);
+	printf("\n#\n# Table structure for table '%s'\n#\n",table);
+	sprintf(insert_pat, "INSERT INTO %s \n  (", table);
+	printf("CREATE TABLE %s (\n", table);
 
 	while(mf=msqlFetchField(tableRes)) 
 	{
-		if (init)
+		if (!init ) 
 		{
-			init = 0;
+			strcat(insert_pat, ",");
+			printf(",\n");
 		}
 		else
 		{
-			if (!tFlag)
-				printf(",\n");
-			if (cFlag)
-				strcat(insert_pat,", ");
+			init = 0;
 		}
-		if (cFlag)
-			strcat(insert_pat,mf->name);
-		if (!tFlag)
+		strcat(insert_pat, mf->name);
+		printf("  %s ", mf->name);
+		switch(mf->type) 
 		{
-			printf("  %s ", mf->name);
-			switch(mf->type) 
-			{
-				case INT_TYPE:
-					printf("INT");
-					break;
-				case CHAR_TYPE:
-					printf("CHAR(%d)", mf->length);
-					break;
-				case REAL_TYPE:
-					printf("REAL");
-					break;
-				default:
-					fprintf(stderr, 
-						"Unknown field type: %d\n", 
-						mf->type);
-					exit(EX_CONSCHECK);
-			}
-
-			if(IS_NOT_NULL(mf->flags) )
-				printf(" NOT NULL");
-			if(IS_PRI_KEY(mf->flags) )
-				printf(" PRIMARY KEY");
+			case INT_TYPE:
+				printf("INT");
+				break;
+			case CHAR_TYPE:
+				printf("CHAR(%d)", mf->length);
+				break;
+			case REAL_TYPE:
+				printf("REAL");
+				break;
+			default:
+				fprintf(stderr, "Unknown field type: %d\n", 
+					mf->type);
+				exit(EX_CONSCHECK);
 		}
+
+		if(IS_NOT_NULL(mf->flags) )
+			printf(" NOT NULL");
+		if(IS_PRI_KEY(mf->flags) )
+			printf(" PRIMARY KEY");
 	}
-	if (!tFlag)
-		printf("\n) \\g\n\n");
-	if (cFlag)
-		strcat(insert_pat,") VALUES (");
+	strcat(insert_pat, ")\n  VALUES\n  (");
+	printf("\n) \\g\n\n");
 	numFields = msqlNumFields(tableRes);
 	msqlFreeResult(tableRes);
 	return(numFields);
@@ -253,7 +221,7 @@ void dumpTable(numFields,table)
 	int	numFields;
 	char	*table;
 {
-	char		query[48],
+	char		query[27],
 			*tmp;
 	m_result 	*res;
 	m_field 	*field;
@@ -296,25 +264,18 @@ void dumpTable(numFields,table)
 				printf(",");
 			else
 				init=0;
-			if (row[i])
+			if (field->type == CHAR_TYPE)
 			{
-				if (field->type == CHAR_TYPE)
-				{
-					tmp = escapeText(row[i]);
-					printf("\'%s\'", tmp);
-					free(tmp);
-				}
-				else
-				{
-					printf("%s", row[i]);
-				}
+				tmp = escapeText(row[i]);
+				printf("\'%s\'", tmp);
+				free(tmp);
 			}
 			else
 			{
-				printf("NULL");
+				printf("%s", row[i]);
 			}
 		}
-		printf(")\\g\n");
+		printf(")\n  \\g\n");
 	}
 }
 
@@ -334,7 +295,7 @@ char *getTableName()
 	row = msqlFetchRow(res);
 	if (row)
 	{
-		return((char *)row[0]);
+		return(row[0]);
 	}
 	else
 	{
@@ -362,7 +323,7 @@ main(argc, argv)
 	/*
 	** Check out the args
 	*/
-	while((c=getopt(argc,argv,"h:vtcd"))!= -1)
+	while((c=getopt(argc,argv,"h:v"))!= -1)
 	{
 		switch(c)
 		{
@@ -378,27 +339,6 @@ main(argc, argv)
 					errFlag++;
 				else
 					verbose++;
-				break;
-
-			case 't':
-				if (tFlag)
-					errFlag++;
-				else
-					tFlag++;
-				break;
-
-			case 'c':
-				if (cFlag)
-					errFlag++;
-				else
-					cFlag++;
-				break;
-
-			case 'd':
-				if (dFlag)
-					errFlag++;
-				else
-					dFlag++;
 				break;
 
 			case '?':
@@ -423,7 +363,7 @@ main(argc, argv)
 	}
 	
 
-	printf("#\n# mSQL Dump  (requires mSQL-1.0.6 or better)\n#\n");
+	printf("#\n# mSQLdump output\n#\n");
 	printf("# Host: %s    Database: %s\n",
 	    host ? host : "localhost", database);
 	printf("#--------------------------------------------------------\n\n");
@@ -431,21 +371,18 @@ main(argc, argv)
 	if (table)
 	{
 		numRows = getTableStructure(table);
-		if (!dFlag)
-			dumpTable(numRows,table);
+		dumpTable(numRows,table);
 	}
 	else
 	{
 		while((table = getTableName()))
 		{
 			numRows = getTableStructure(table);
-			if (!dFlag)
-				dumpTable(numRows,table);
+			dumpTable(numRows,table);
 		}
 	}
 	dbDisconnect(host);
 	printf("\n");
-	exit(0);
 }
 
 
