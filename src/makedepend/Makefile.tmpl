@@ -1,0 +1,32 @@
+
+SRCS= include.c main.c parse.c pr.c cppsetup.c ifparser.c
+OBJS= include.o main.o parse.o pr.o cppsetup.o ifparser.o
+
+CC_FLAGS= $(CFLAGS) -DOBJSUFFIX=\\\".o\\\" -DINCLUDEDIR=\\\"/usr/include\\\"
+
+all: makedepend
+
+makedepend : $(OBJS)
+	$(CC) -o makedepend $(OBJS)
+
+include.o: include.c
+	$(CC) -c $(CC_FLAGS) include.c
+
+main.o: main.c
+	$(CC) -c $(CC_FLAGS) main.c
+
+parse.o: parse.c
+	$(CC) -c $(CC_FLAGS) parse.c
+
+pr.o: pr.c
+	$(CC) -c $(CC_FLAGS) pr.c
+
+cppsetup.o: cppsetup.c
+	$(CC) -c $(CC_FLAGS) cppsetup.c
+
+ifparser.o: ifparser.c
+	$(CC) -c $(CC_FLAGS) ifparser.c
+
+
+clean ::
+	rm -f core $(OBJS) makedepend

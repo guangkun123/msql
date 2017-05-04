@@ -1,0 +1,149 @@
+
+Welcome to the miniSQL monitor.  Type \h for help.
+
+
+mSQL >     -> 
+Query buffer
+------------
+
+delete from test where user = 'dummy7'
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+9 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ | dummy1     | 99       | XXX                  |
+ | dummy2     | 97       | XXX                  |
+ | dummy3     | 60       | XXX                  |
+ | dummy4     | 60       | XXX                  |
+ | dummy5     | 60       | XXX                  |
+ | dummy6     | 89       | XXX                  |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+delete from test where age = 92
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+9 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ | dummy1     | 99       | XXX                  |
+ | dummy2     | 97       | XXX                  |
+ | dummy3     | 60       | XXX                  |
+ | dummy4     | 60       | XXX                  |
+ | dummy5     | 60       | XXX                  |
+ | dummy6     | 89       | XXX                  |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+delete from test where age > 80 and age < 95
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+8 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ | dummy1     | 99       | XXX                  |
+ | dummy2     | 97       | XXX                  |
+ | dummy3     | 60       | XXX                  |
+ | dummy4     | 60       | XXX                  |
+ | dummy5     | 60       | XXX                  |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+delete from test where user like  '%umm%'
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+3 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Bye!
+

@@ -1,0 +1,21 @@
+#!/bin/sh
+
+BD=/usr/local/Minerva/bin
+
+DBS=`${BD}/relshow | grep -v 'Databases' | grep -v '-' | sed 's,|,,g'`
+
+for DB in $DBS
+do
+	${BD}/relshow $DB
+	
+	for TAB in `${BD}/relshow $DB | grep -v 'Table' |\
+		grep -v 'Database' | grep -v '-' | sed 's,|,,g'`
+	do
+		if test "$TAB." != "."
+		then
+			${BD}/relshow $DB $TAB
+		fi
+		sleep 2
+	done
+	sleep 5
+done

@@ -1,0 +1,111 @@
+#
+# Sample miniSQL script file.  
+#
+
+drop table test 
+\p\g
+
+drop table test2
+\p\g
+
+
+create table test (
+	name	char(10) primary key,
+	age	int,
+	phone	char(20),
+	addr	char(20)
+)
+\p\g
+
+
+create table test2 (
+	user	char(10) primary key,
+	name	char(30)
+) \p\g
+
+
+insert into test ( name, age, phone)
+	values ( 'Bambi', 26, '(075) 951450')
+\p\g
+
+
+insert into test ( name, age, phone)
+	values ( 'paulp', 25, '(075) 951412')
+\p\g
+
+
+insert into test2 (user, name) values ('paulp','Paul Pyyvaara') \p\g
+insert into test2 (user, name) values ('Bambi','David J. Hughes') \p\g
+
+
+#
+# This has a NULL name field and should fail due to the "not null"
+# clause implied by the primary key 
+#
+
+insert into test (age, phone)
+	values ( 99, '9999')
+\p\g
+
+
+
+#
+# This should fail because of the non-unique key value
+#
+
+insert into test (name, age, phone)
+	values ('Bambi', 26, '(075) Home_Number')
+\p\g
+
+
+#
+# Keyed lookup
+#
+select phone from test where name = 'Bambi'
+\p\g
+
+
+select * from test \p\g
+
+#
+# Paul's birthday :-)
+#
+update test set age = 26 where name = 'paulp'
+\p\g
+
+
+select * from test \p\g
+
+#
+# Non-key passed lookup
+#
+select * from test where phone = '(075) 951412'
+\p\g
+
+
+
+select * from test where name like '%am%'
+\p\g
+
+
+#
+# Do a join
+#
+
+select test2.name, test.phone
+	from test2,test
+	where test2.user = test.name
+\p\g
+
+#
+# Try a sorted one
+#
+
+select test2.name, test.phone
+	from test2,test
+	where test2.user = test.name
+	order by test2.name 
+\p\g
+
+
+

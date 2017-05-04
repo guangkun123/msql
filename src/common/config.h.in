@@ -1,0 +1,51 @@
+
+#ifndef _CONFIG_H
+#define	_CONFIG_H 1
+
+/* Defined if you have strdup().  */
+#undef HAVE_STRDUP
+
+/* Defined if you have rindex(3).  */
+#undef HAVE_RINDEX
+
+/* Defined if you have bcopy(3).  */
+#undef HAVE_BCOPY
+
+/* Defined if you have ftruncate().  */
+#undef HAVE_FTRUNCATE
+
+/* Defined if you have getdtablesize().  */
+#undef HAVE_GETDTABLESIZE
+
+/* Defined if you have strsignal() rather than sys_siglist[]  */
+#undef HAVE_STRSIGNAL
+
+/* Defined if you have sys/sockio.h */
+#undef HAVE_SYS_SOCKIO_H
+
+/* Defined if you have netinet/in_systm.h */
+#undef HAVE_NETINET_IN_SYSTM_H
+
+/* Defined if you have sys/dir.h */
+#undef HAVE_SYS_DIR_H
+
+/* Defined if you have dirent.h */
+#undef HAVE_DIRENT_H
+
+/* Defined if you have select.h  */
+#undef HAVE_SELECT_H
+
+/* Defined if you have sys/select.h  */
+#undef HAVE_SYS_SELECT_H
+
+/* Defined if you have sys/un.h (SCO doesn't have UNIX sock's) */
+#undef HAVE_SYS_UN_H
+
+/* Defined if you have random() */
+#undef HAVE_RANDOM
+
+/* Defined to the type of sig handlers */
+#undef RETSIGTYPE
+
+
+#endif /*_CONFIG_H*/

@@ -1,0 +1,31 @@
+# Force a duplicate user and do distinct joins
+
+insert into test2 (user, fullname) values ('fred','Fred Smith') \p\g
+
+select distinct test2.user, test.age
+        from test2,test
+        where test2.user = test.user
+        order by test2.user
+\p\g
+
+select distinct test2.fullname, test.age
+        from test2,test
+        where test.age > 20
+\p\g
+
+
+select distinct test2.user, test2.fullname, test.age
+        from test2,test
+        where test2.user like 'B%'
+        order by test2.user, test.age
+\p\g
+
+
+select distinct test2.fullname, test.age
+        from test2,test
+        where test2.user = test.user
+        order by test2.fullname
+\p\g
+
+
+

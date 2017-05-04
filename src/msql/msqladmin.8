@@ -1,0 +1,27 @@
+.TH MSQLADMIN 1 "16 February 1994"
+.SH NAME
+msqladmin   \-  miniSQL database administration
+.SH SYNOPSIS
+.nf
+.ft B
+msqladmin  [create | drop] database
+.ft
+.fi
+.SH DESCRIPTION
+.LP
+msqladmin is used to create and drop entire databases.  It must be run
+on the machine acting as the miniSQL server.  It will not work if
+executed in a client/server manner.
+
+.SH SEE ALSO
+.BR msql (1),
+.BR relshow (1),
+.BR msql (3),
+.BR msqld (8),
+\fB"MiniSQL Language Specification"\fP.
+
+.SH AUTHOR
+miniSQL has been written by David Hughes of Bond University,
+Australia as part of the Minerva Network Management
+Environment.  He may be reached via electronic mail using 
+bambi@Bond.edu.au

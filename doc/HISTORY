@@ -1,0 +1,591 @@
+mSQL 1.0 Patch 16        7 - Jul - 1996
+---------------------------------------
+
+	o Fixed problem in the byte copying (bcopy macros) introduced
+		in the 1.0.15 release.
+	o Fixed bug in null termination of char fields on update
+
+
+mSQL 1.0 Patch 15        3 - Jul - 1996
+---------------------------------------
+
+	o Fixed remaining host byte order problems
+	o Fixed dangling pointer access during delete where condition
+		used LIKE to select values in a primary key
+	o Fixed problem if msqlListFields(), msqlCreateDB() or
+		msqlDropDB() is called with a NULL value
+	o Added 0 exit value to msqldump
+	o Fixed access control matching in acl.c
+	o Forced char key value copies to min(strlen(str),keyLen)
+	o Added table/field name length checks in msql_proc.c to force
+		an error rather than silent truncation
+	o Forced NULL termination of values copied with strncpy()
+	o Fixed several memory leaks/core dumps when msqld run on
+		boxes without mmap().
+	o Added unique table name/alias testing to msqlAddTable() for
+		selects.
+	o Added exception testing to parser based on errors from
+		msql_proc routines.
+	o Fixed connect count getting out of synch during exceptions
+	o Added support for O_BINARY to help non-unix portability
+	o Fixed file descriptor leak on certain exceptions in msqlCreate()
+	o Changed file existance checks from open() to stat() to help
+		non-unix portability
+	o Added invalidation of table cache entries for aliases if the
+		primary entry is invalidated.
+	o Reversed the order of byte copying for the inline bcopy macros
+		as it was reported this solved a problem on SGI's ???
+	o Re-ordered the way a table is dropped to help non-unix portability
+	o Replaced explicit calls to make with $(MAKE) in makefiles and 
+		gmakegen macros.
+	o Added -t flag to msqldump (no table definition)
+	o Added -c flag to msqldump (complete insert statements)
+	o Fixed half creation of table during exception on field info
+	o Added code to remove tmp table on server exit
+	o Added error condition to relshow for invalid table name
+	o Added architecture info to "msqladmin version"
+	o Fixed incorrect handling of NULLs in comparisons
+	o Added escape for \ for char data fields in msqldump
+		
+
+
+mSQL 1.0 Patch 14        6 - May - 1996
+---------------------------------------
+
+	o Fixed regexp handling bug for multiple deletes based on LIKE
+	o Fixed regexp last char match problem
+	o Tidied up the \ escape in LIKE.  It only strips the \ if it's
+		for an SQL regexp char (i.e. % or _)
+	o Fixed the "insert after update" problem
+	o Fixed host/network byte order problem
+	o Fixed problem if msqlSelectDB() called with a NULL value
+	o Fixed dangling pointer access in query clean-up
+	o Fixed passing of -1 to close() during cache invalidation
+	o Fixed subtle memory bug The problem raise its head if the table
+		had a key, the key field was a char field and the value 
+		inserted into the key was longer than the defined value of
+		the field (And it was the second Tuesday of a month
+		starting with the letter 'M' :)
+
+
+
+mSQL 1.0 Patch 13        6 - Mar - 1996
+---------------------------------------
+
+	o Fixed multiple free of key data in delete (dumping core on Linux)
+	o Fixed 1 byte read overrun in regexp code
+	o Added support for Rasmus' writePkt() patch into msqldb.c
+	o Reset SIGPIPE handler in libmsql for Apache
+	o Fixed reference to varchar in sample.msql
+	o Crated a more complete rtest suite (for use with Insure++)
+
+
+mSQL 1.0 Patch 12       15 - Feb - 1996
+---------------------------------------
+
+	o Removed mSQL-2 VARCHAR stuff from 1.x source tree
+	o Fixed key based core dump (stupid mistake)
+
+
+
+mSQL 1.0 Patch 11       12 - Feb - 1996
+---------------------------------------
+
+	o Fixed endless loop bug in bSort()
+	o Applied Rasmus' patch to writePkt() although it won't make any
+	  difference to the operations of msqld without adding a return
+	  value check to every place writePkt() is called.
+	o Fixed memory leak when msql_tmplnam() is used.
+	o Fixed file descriptor leak in acl.c
+	o Fixed bug in run_daemon script
+	o Fixed memory leak in uname field of connection table 
+	o Fixed passing of invalid keyFD to close in dropTable() if
+		table isn't keyed
+	o Fixed memory leak of key value in findKeyValue()
+	o Fixed static name buffers in internal structs  to fix
+		buffer overflow problems
+	o Fixed memory leak in some lexer tokens in the parser
+	o Fixed file descriptor leak and memory leak in ACL handling
+	o Forced mSQL tmp result tables to live in ..../msqldb/.tmp
+	o Fixed order bug if the length of a char field is the same
+		as the defined length of the field (i.e. no space for a
+		NULL terminator)
+	o Changed libmsql to identify a user based on effective UID not
+		the real UID.
+	o Added size_t and off_t casts to mmap() args for 64 bit NetBSD
+	o Doco updated and reformatted for US letter rather than A4
+	o Added SO_REUSEADDR socket option if it's available
+	
+
+
+
+mSQL 1.0 Patch 10        27 - Nov - 1995
+---------------------------------------
+
+	o Fixed another mmap() problem that was stuffing up HP-UX
+	o Fixed the new msql_tmpnam() function
+	o Rolled in fix for bsort() being called with an empty table
+
+
+
+mSQL 1.0 Patch 9         20 - Oct - 1995
+---------------------------------------
+
+	o Fixed close of stdin in keyFD handling (new key code)
+	o Fixed memory leak in the client library
+	o Fixed force close of UNIX socket when over-ridden by the
+		environment variable
+	o Fixed a couple of core dumps introduced by the new key code
+	o Replace sorting code with a new algorithm (mmap only)
+	o Fixed bug in msqlUpdate() that reported a duplicate key error
+		if you updated the key field to the same value.
+	o Merged in the LIMIT patch from Rasmus Lerdorf <rasmus@io.org>
+	o Fixed locale problem with LANG make variable
+	o Inlined a few calls to bcopy and bcmp for performance
+	o Removed libmisc.a  All misc finctions are now in libmsql.a
+	o Fixed problem with field definition info (eg IS_PRI_KEY) being
+		destroyed after a join.
+	o Added a msql_tmpnam() function to get around the NeXT's
+		problem with it's own tmpnam().
+	
+
+mSQL 1.0 Patch 8         5 - Sep - 1995
+---------------------------------------
+
+	o Added portability.h to msql_yacc.c
+	o Changed LANG to MSQL_LANG in site.mm to avoid locale conflicts.
+	o Added numRows field to table cache.  Used to keep track of
+		result table size.
+	o Added new fast ordering code for mmap() based installations
+		based on code by Pascal Forget <pascal@wsc.com>
+	o Modified the makegen install macros to rename an old
+		installation prior to copying the new file.
+	o Added row length check to msql so that internal buffers are
+		not overflowed.
+	o Fixed formatPacket() so that getting the size of a long field
+		doesn't overflow the tmp field length buffer bufLen
+	o Added check for duplicate field names in table creation (ooops!)
+	o Added further join optimisation.  It now does more partial
+		match checking while processing the inner table of
+		the join (a big win in performance and swap utilisation)
+	o Fixed problem with mmap() under BSDI and HP-UX.
+	o Fixed buffer overrun in msql for cases such as a query missing
+		a closing quote on a text field.
+	o Optimised DISTINCT operations a little.
+	o Fixed buffer over-run in handling the return of a query
+		edited with an external editor  (\e command)
+	o Fixed table names in returned result table info
+	o Fixed bug caused by the combination of the new sort code
+		and the old distinct code for mmap() machines
+	o Merged in experimental mSQL-2 code.  Not enabled by default.
+		This is as far as I can go with the 2.0 code without going
+		all the way!  This is the end of the 1.0 release base code
+		as the further 2.0 work will need to modify the database
+		formats.
+
+
+
+mSQL 1.0 Patch 7         3 - Jul - 1995
+---------------------------------------
+
+	o Changed __P macro  to __ANSI_PROTO in msql.h due to a
+		clash with a gcc __P macro on some systems.
+	o Fixed "Unknown field" bug in result table handling  (cond list
+		on final select should have been NULL).
+	o Removed LANG definition from site.mm as it's being grabbed
+		from common/site.h
+	o Added depend's for each object file on Makefile.full as
+		not enough things were being recompiled if the root
+		user was changed.
+	o Fixed bug where a row could have be updated to contain a
+		non-unique key value
+	o Added optional AS to table aliases for ANSI
+	o Added support for 17 digits of precision in REAL numbers
+		(a bug was limiting this to 1 digit of precision)
+	o Added sig handling support for OS's that reset the sig
+		handler on sig delivery (eg IRIX)
+	o Removed execute bit from PID file mode.
+	o Fixed undefined error if first field of a select result was
+		NULL (required a slight mod to the protocol again :-( )
+	o Fixed core dump on update of key field value when where clause
+		uses key field.
+	o Fixed query buffer length problem in msqldump
+	o Fixed credit info for Nils Faerber
+	o Added debug feedback for failed command reads
+	o Fixed args to exec() in msqld.c
+	o Fixed core dump from access to free()'d space if INSERT given with 
+		out the field names.
+	o Brought makepend's Makefile under the control of makegen
+	o Fixed inet_addr() return problem for Alpha's
+	o Fixed race condition if client fails before the connection is
+		setup properly
+
+
+mSQL 1.0 Patch 6        29 - May - 1995
+---------------------------------------
+
+	o Added support for table aliases in joins.  Thanks to
+		Mark Onyschuk <mark@oa.guild.org> for his patch
+		(I didn't use it but it made me complete the work I'd
+		started).
+	o Added multi-language error messages with help from
+		Nils Faerber <gl055@appl2.hrz.uni-siegen.de>.
+	o Fixed bug in joins where the order of the tables
+		could cause different results.
+	o Added extra symbols to the lexer from ANSI.
+	o Added support for inserts without field spec's based on an
+		old patch from Paul Reithmuller <par@sequent.com>.
+	o Added support for VISUAL and EDITOR environment vars
+		in the monitor.
+	o Fixed a memory leak in extractValues().
+	o Fixed definition of key and outerKey in joinTables().
+	o Fixed problem with OR clauses in joins.
+	o Fixed problem with OR clauses in update/delete/select where
+		the primary key is involved.
+	o Added support for Scientific Notation in reals using a patch
+		from Stan Dallas <stan@analogy.com>
+	o Added support for server port number to be in /etc/services
+		or in MSQL_UNIX_PORT and MSQL_TCP_PORT variables
+	o Fixed NULL handling in updates, the protocol and libmsql
+		( NOTE : a NULL value is represented by a NULL pointer
+			in the returned row.  If your application
+			doesn't check the data before it uses it you may
+			be introuble with this one).
+	o Added NULL support to mSQL monitor
+	o Added NULL support to relshow
+	o Added optional ANSI C prototype support to msql.h
+	o mSQL protocol now at level 5 
+		( NOTE : you'll need to relink your apps)
+
+
+mSQL 1.0 Patch 5        15 - Feb - 1995
+---------------------------------------
+
+	o Fixed bug in long text field handling
+	o Added C++ support for msql.h
+	o Added support for MSQL_HOME environ variable in msqld
+	o Added HAVE_MMAP defines around new munmap() call
+	o Extracted the install from the Makefile to an external script
+	o Replaced "-c -o $obj" with "-c" in the makegen macros
+	o Added partial match optimisation for the outer loop of joins
+	o Fixed integer handling for Cray (64bit)
+
+
+mSQL 1.0 Patch 4        8 - Feb - 1995
+--------------------------------------
+
+	o Moved target stuff to a script as bash dies on the Makefile
+	o Fixed bug in net.c regarding non-terminating reads
+	o Fixed memory leak left after 1.0.3 testing
+	o Added identifier length checks
+	o Fixed Multiple free problem with tmp tables values
+	o Fixed memory leak with tmp condition list values
+	o Fixed formatPacket() to handle long char fields (>1024)
+	o Added hash based keyword lookup to parser  (speedup)
+	o Reduced the use of bzero and bcopy (speedup)
+	o Inlined a couple of functions that are called frequently (speedup)
+
+
+mSQL 1.0 Patch 3        1 - Feb - 1995
+--------------------------------------
+
+	o Fixed conInfo index bug
+	o Fixed net.c to ensure full reads and writes
+	o Added 64-bit int support for Crays
+	o Fixed Cray stuff in the README
+	o Added msqlClose() to msql.h
+	o Added AIX sys/select.h support to common/config.h.in
+	o Added further version info to msqladmin
+	o Added calls to msqlClose() in relshow
+	o Added error reporting for multiple primary keys in create
+	o Fixed key handling in "complex" conditions
+	o Added socket details to debugging output (general in msqld
+		and api in libmsql).
+	o Started on primary key support withing joins
+	o Reverted to an older version of autoconf so that it
+		will build under SunOS 4.1.3
+
+mSQL 1.0 Patch 2        18 - Jan - 1995
+--------------------------------------
+
+	o Fixed mmap() problem with key remapping
+	o fixed -h option on msql
+	o fixed tabs in # defines in site.h for AIX
+	o Added "grep -i" to killer test for AIX's time output
+	o Made net.c a bit more robust
+	o Fixed LIKE field over-run problem
+	o Added AIX stuff to sys-arch
+	o Upgraded to the current version of autoconf
+	o Fixed long field/table name over-runs (core dump)
+	o Tightened up file and directory modes
+	o Added test for max number of connections
+	o Fixed socket handling on failed connection in libmsql
+	o Fixed makegen macros for SVR4.2
+
+
+mSQL 1.0 Patch 1        5 - Jan - 1995
+--------------------------------------
+
+	o Added -h option to msql
+	o Added MSQL_HOST support to msql
+	o Fixed arg count in call to msqlLoadAcl() in msqld.c
+	o Fixed fchmod() problem in makedepend for SCO
+	o Added ACL support for admin commands from "localhost" as
+		SCO doesn't have UNIX sock's so admin commands come
+		from localhost over TCP.
+	o Fixed NULL value insert and condition core dumps
+	o Fixed comments within char literals in the terminal monitor
+	o Added -q mode for msqladmin 
+	o Changed HOST to MSQLHOST in rtest to overcome default environments
+	o Removed myself from run_daemon so that I don't get other
+		peoples crash reports
+	o Added mode setting for install directories to mkinstalldirs
+	o Fixed install.mm and libinstall.mm to only chown if owned by root
+	o Fixed yyerror() so that a NULL yytext doesn't cause a SEGV
+	o Added quote escaping to msqldump
+	o Added "integer" and "smallint" to the lexer
+	o Fixed field list over-run and protocol screwup in msqlListFields()
+	o Added on-the-fly INT to REAL conversion on inserts
+	o Added filename and line number info to malloc and mmap debugging
+	o Fixed huge memory leak in ident structure handling
+	o Fixed remapping during keyed inserts (50% less map/unmap calls)
+	o Fixed int active comparisons
+	o Forced a buffer reload after deleteRow() if mmap() not in use.
+		Thanks to Pierre Dupre (Pierre.Dupre@metro.fr) for
+		finding and fixing this problem on his Motorola.
+	o Fixed NULL row free in createSortedTable(), createDistinctTable()
+	o Added malloc() and mmap() leak detection in debug modes
+	o Added table cache cleanup on exit.
+	o Added continuation prompting to monitor
+
+
+
+mSQL 1.0                14 - Dec - 1994
+---------------------------------------
+
+	o Fixed select loop bug (bad FD on partial client connection)
+	o Added read loop timeout for those with interruptable syscalls
+	o Fixed one-line bug in readKey() that cause key lookups to fail
+	o Merged msqlsave by Igor Romanenko (igor@frog.kiev.ua) into the
+		distribution as msqldump.  Added ability to dump entire
+		databases and reformated to match the rest of the code.
+	o Fixed call to /bin/echo in makegen for bash
+	o Added #ifdef's for signal names around calls to signal()
+	o Added DISTINCT operator to SELECT's
+	o Fixed bad type checking in writeKey()
+	o Fixed key remapping bug (wasn't remapped between inserts).
+	o Ported code to FreeBSD 2.0 (including getting around a
+		compiler bug and a _very_ wierd shell!)
+	o Recoded the lex scanner in C (msql_lex.c)
+	o Added support for escaped data in text literals
+	o Recoded text literal code to handle 8-bit data rather than
+		just strings (i.e. no strlen(), strcpy() etc.)
+	o Added Version info to the server
+	o Added 'version' command to msqladmin
+	o Added '-h host' option to all commands
+	o Removed support for MSQL_HOST env var as -h does the job better
+	o Added '-q' flag to msql 
+	o Added regession test suite
+
+
+mSQL 0.3 Beta Patch 1	28 - Nov - 1994
+---------------------------------------
+
+	o Fixed bug that caused the server to go into an endless read loop
+		on a bad client crash (SIGPIPE related)
+	o Added argc test to msqladmin
+	o Fixed POSIX_SOURCE garbage in X's headers for makedepend
+	o Recoded signal handling in makedepend/main.c so as not to
+		use sigaction() and friends (just use signal() )
+	o Added "proctitle" debugging option
+	o Added "mmap" debugging option
+	o Fixed mmap() key file seg fault after re-map
+	o Generally cleanup up the mmap() based code.
+	o Added support for /bin/time being in places other than /bin
+		to the killer test.
+	o Fixed srand() type declaration problem for Linux in libmsql.c
+	o Added support for GNU time in the killer script
+	
+
+mSQL 0.3 Beta		21 - Oct - 1994
+---------------------------------------
+
+	o Repackaged Alpha 3 for a more public Beta release
+
+
+mSQL 0.3 Alpha 3	20 - Oct - 1994
+---------------------------------------
+	
+	o Added end-of-query marker handling
+
+	
+mSQL 0.3 Alpha 2	18 - Oct - 1994
+---------------------------------------
+
+	o Fixed "echo -n" in make targets
+	o Removed X includes within makedepend
+	o Fixed trailing space in site.mm.in
+	o Added a missing check for dirent/direct in msqldb.c
+	o Clean up tmp dir test in setup
+
+mSQL 0.3 Alpha		17 - Oct - 1994
+---------------------------------------
+
+	o Added access control
+	o Fixed struct dirent/direct portability
+	o Improved error reporting during connection setup
+	o Moved database creation and deletion into the server
+	o Fixed msqladmin to use the create/drop in the server
+	o Added code to invalidate any cache entry relating to
+		a DB if the entire DB is dropped.
+	o Added support for qualified fields using ident_t structs
+	o Fixed setupFields and setupConds so that all ident's are
+		qualified internally.
+	o Added support for non-textual values (e.g. field to field
+		comparisons) using val_t structs
+	o Added temporary result table support
+	o Added joins
+	o Added code to ensure reads and writes handled the full amount
+		of data
+	o Added selcet ordering
+	o Removed all global cacheEntry pointer references
+	o Added PID_DIR test to setup
+	o Added VISUAL environ variable support to query editing within
+		the mSQL monitor.
+	o Fixed a one line bug in the cache entry free()'ing code that
+		caused bad memory hunks to get into the cache (thanks
+		for the help Andreas).
+	o Added per table cache entry read buffering to improve performance
+		of joins etc. if there's no mmap().
+	o Fixed 64-bit pointer problems.
+	o Fixed quoting in generated Makefiles for OSF/1's shell
+	o Added makedepend stuff to makegen.
+	o Added portability for AIX <select.h> and struct fd_set
+	o Added type checking to conditionals
+	o Added fudge to map int's to reals for things like "2.3 > 2"
+	o Fixed the client lib so that a data flow from the server could
+		be interrupted and terminated by an error message. (e.g.
+		a select fails half way through with an error message)
+	o Fixed null handling so that queries work as expected
+	o Added support for non-root installations
+
+
+
+mSQL 0.2 patch 3        9 - Sep - 1994
+---------------------------------------
+
+	o Added the License file to the distribution.  Make install
+		was looking for it when it wasn't there.
+
+
+mSQL 0.2 patch 2        8 - Sep - 1994
+---------------------------------------
+
+	o Modified the killer test script so that it can use both BSD
+		and SysV styled /bin/time outputs
+	o Moved the large buffer used by readKey() into the global scope
+		so that it wasn't put onto the stack (small stack limits
+		were failing)
+	o Purify'd the sucker within an inch of it's life.  This should
+		fix the problems seen on NeXTs as there were many places
+		where free memory reads and the like were going on.  Huge
+		levels of thanks an appreciation to Anthony Baxter for
+		actually doing the Purify'ing (repeatedly) as I don't have 
+		a copy.
+	o Added a LINKER variable to site.mm so that a one line change
+		could be made to force the use of other linkers like
+		Purify.
+	o Added checks to ensure that a database had been selected prior
+		to performing operations such as msqlListFields() etc.
+	o Added a call to msqlClean() from inside yyerror() so that the
+		internal guff is cleaned if the query has a syntax
+		error.
+	o Fixed array bounds over-run error in writeRow() if a row
+		buffer was provided.
+	o Added a dummy variable info struct to the result handles
+		returned by msqlListDBs() msqlListTables() so that they
+		could be treated as standard query results.
+	o Esured that msqlListFields() retuned a result handle with a 0
+		row data table.
+
+
+
+mSQL 0.2 patch 1	22 - Aug - 1994
+---------------------------------------
+
+	o The cache routines were often using an old global pointer into the
+		table cache structure (tableDef) rather than dereferencing
+		the current cache entry pointer.  This caused the server
+		to often use the incorrect table defininition.
+
+
+mSQL 0.2  		19 - Aug - 1994
+---------------------------------------
+
+	o Added mmap() support to readRow() and writeRow() 
+	o Added primary keys to database, field definition and protocol
+	o Added code to invalidate the table cache entry of a table if it
+		is dropped.  This fixes the bug whereby a table could be
+		recreated and the server still used the old definition.
+	o Profiled selects a little to improve performance.  The parser now
+		sets a flag if it sees a field wildcard in a select.  This
+		ensures that expandFieldWildcards() is only called when it
+		is needed.
+	o Merged in par's mod's for "not null" support. 
+	o Fixed bug in updateValues() introduced by the "not null" patch
+	o Added checkNullFields() to utilise the new notnull field and
+		byte to ensure notnull fields are in fact notnull.  An
+		insert or an update will now fail if a notnull field has
+		no value.
+	o Added LIKE clause for char type comparisons.  The SQL regexp
+		syntax is mapped into "unix" regexp syntax and Henry
+		Spencer's regexp library is used for the evaluation.
+	o Added trap code, puntClient(), to handle the SIGPIPE generated if 
+		a client bails out after submitting a query but before the 
+		result is sent (i.e. server writes down a closed socket).
+	o Added support for negative int values (should have been in there
+		to start with).
+	o Removed case sensitivity from SQL keywords
+	o API modified :-
+		msqlStoreResult() added returning result*
+		msqlFetchData() is now msqlFetchTable() taking result*
+		msqlFetchRow() added taking result*
+		msqlInitDB() now called msqlSelectDB()
+		msqlConnect() takes host or NULL to revert to old behaviour
+		msqlConnect() returns server socket
+		all routines that talk to the server now take socket
+	o API data types :-
+		m_table is now m_data
+		m_result added as the query result handle
+	o Protocol modified :-
+		now handles null's and keys
+		username passed to server when msqlInitDB() called.
+		field info is now returned from a select
+	o Cleaned up client library and removed the references to
+		debug() unless MINERVA_DEBUG defined.  Debug still
+		included in the server
+	o Fixed bug in real handling (had atof() returning a double)
+	o Added autoconf test for sys_siglist
+	o Found and fixed a bug in the table cache code that caused a
+		core dump if the cache was rolled over.
+	o Found and fixed one of the memory leaks in select calls
+	o Implemented new data/key reading/writing mechanisms for use
+		with disk files as the mmap() code had to be backed out.
+		The new ones are faster than the old ones anyway.
+	o Added internal debugging to the API with an internal copy of
+		the debug code.
+	o Added heaps more debugging to the server
+		
+
+
+mSQL 0.1 patch 1	5 - Jul - 1994
+---------------------------------------
+
+	o Fixed a stupid problem with the Makefiles generated by makegen.  
+		The release version had problems with "make install"
+
+
+mSQL 0.1		30 - Jun - 1994
+---------------------------------------
+
+	o How can there be any history!  This is the first release :-)

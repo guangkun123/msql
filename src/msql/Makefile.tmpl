@@ -1,0 +1,64 @@
+
+
+CC_FLAGS= $(CFLAGS) -DINST_DIR='"$(INST_DIR)"' $(SIGLIST) $(DIRENT) $(MMAP) -DPID_DIR='"$(PID_DIR)"' $(U_INT) $(ROOT_EXEC) -DROOT='"$(ROOT)"' $(FAST_MALLOC) $(NEW_DB) $(NEW_DB_INC) $(MSG_LANG) -DARCH='"$(ARCH)"'
+
+YACC_FLAGS= -d
+LD_LIBS= $(LDLIBS) $(NEW_DB_LIB)
+
+!yacc msql_yacc.y
+
+!object msql_proc.o msql_proc.c 
+!object msqldb.o msqldb.c 
+!object msqld.o msqld.c 
+!object acl.o acl.c 
+!object msql_lex.o msql_lex.c
+
+#
+# We don't need an !object call for net.c as net.o is made from the
+# !library call below
+# 
+
+!library libmsql.a libmsql.c,net.c ../common/strlib.o,../common/tmpnam.o
+
+all: ../lib/libmsql.a
+
+../lib/libmsql.a : libmsql.a
+	rm -f ../lib/libmsql.a
+	ln -s ../msql/libmsql.a ../lib/libmsql.a
+	$(RANLIB) ../lib/libmsql.a
+
+!object msqladmin.o msqladmin.c
+!program msqladmin msqladmin.o,acl.o,libmsql.a
+
+!object msql.o msql.c
+!program msql msql.o,libmsql.a
+
+!object msqldump.o msqldump.c
+!program msqldump msqldump.o,libmsql.a
+
+!object relshow.o relshow.c 
+!program relshow relshow.o,libmsql.a
+
+!object insert_test.o insert_test.c 
+!program insert_test insert_test.o,libmsql.a
+
+!object select_test.o select_test.c 
+!program select_test select_test.o,libmsql.a
+
+!program msqld msqld.o,msql_yacc.o,msql_lex.o,msql_proc.o,net.o,msqldb.o,acl.o,libmsql.a ../common/debug.o,-lregexp
+
+msqld-clean:
+	rm -f msqld.o msql_yacc.o msql_lex.o msql_proc.o net.o \
+	msqldb.o 
+
+!install msql $(INST_DIR)/bin/msql 0755
+!install msqld $(INST_DIR)/bin/msqld 4750 $(ROOT)
+!install msqladmin $(INST_DIR)/bin/msqladmin 0750 $(ROOT)
+!install relshow $(INST_DIR)/bin/relshow 0755 $(ROOT)
+!install msqldump $(INST_DIR)/bin/msqldump 0755 $(ROOT)
+!libinstall libmsql.a $(INST_DIR)/lib/libmsql.a 744 $(ROOT)
+!install msql.h $(INST_DIR)/include/msql.h 744 $(ROOT)
+!install sample.acl $(INST_DIR)/msql.acl.sample 700 $(ROOT)
+
+lextest :: msql_lex.c
+	$(CC) $(CC_FLAGS) -DDEBUG msql_lex.c -o lextest

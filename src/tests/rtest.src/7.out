@@ -1,0 +1,89 @@
+
+Welcome to the miniSQL monitor.  Type \h for help.
+
+
+mSQL >     ->     ->     ->     ->     -> 
+Query buffer
+------------
+
+select test2.fullname, test.age
+        from test2,test
+        where test.age > 20 
+	order by test.age, test2.fullname
+
+[continue]
+    -> 
+Query OK.
+
+12 rows matched.
+
+ +--------------------------------+----------+
+ | fullname                       | age      |
+ +--------------------------------+----------+
+ | NULL                           | 25       |
+ | David J. Hughes                | 25       |
+ | Fred O'Niell                   | 25       |
+ | Paul Pyyvaara                  | 25       |
+ | NULL                           | 26       |
+ | David J. Hughes                | 26       |
+ | Fred O'Niell                   | 26       |
+ | Paul Pyyvaara                  | 26       |
+ | NULL                           | 31       |
+ | David J. Hughes                | 31       |
+ | Fred O'Niell                   | 31       |
+ | Paul Pyyvaara                  | 31       |
+ +--------------------------------+----------+
+
+
+
+mSQL >     ->     ->     ->     ->     ->     -> 
+Query buffer
+------------
+select test2.fullname, test.age
+        from test2,test
+        where test2.user like 'B%'
+	order by test2.fullname, test.age
+
+[continue]
+    -> 
+Query OK.
+
+3 rows matched.
+
+ +--------------------------------+----------+
+ | fullname                       | age      |
+ +--------------------------------+----------+
+ | David J. Hughes                | 25       |
+ | David J. Hughes                | 26       |
+ | David J. Hughes                | 31       |
+ +--------------------------------+----------+
+
+
+
+mSQL >     ->     ->     ->     ->     ->     -> 
+Query buffer
+------------
+select test2.fullname, test.age
+        from test2,test
+        where test2.user = test.user
+	order by test2.fullname
+
+[continue]
+    -> 
+Query OK.
+
+3 rows matched.
+
+ +--------------------------------+----------+
+ | fullname                       | age      |
+ +--------------------------------+----------+
+ | David J. Hughes                | 26       |
+ | Fred O'Niell                   | 31       |
+ | Paul Pyyvaara                  | 25       |
+ +--------------------------------+----------+
+
+
+
+mSQL >     -> 
+Bye!
+

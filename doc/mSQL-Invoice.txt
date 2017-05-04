@@ -1,0 +1,59 @@
+Hughes Technologies Pty Ltd.			  Fax: +61 7 3302 2199
+P.O. Box 55, Bond University			  http://Hughes.com.au
+Gold Coast, Qld 4229
+Australia
+
+
+                         Mini SQL 1.0 Invoice
+                         ====================
+
+Customer Details
+----------------
+
+Name		: _________________________________________________
+
+Organisation	: _________________________________________________
+
+Postal Address	: _________________________________________________
+
+                  _________________________________________________
+
+                  _________________________________________________
+
+E-Mail Address	: _________________________________________________
+
+
+
+Order Details
+-------------
+
+      _____________________________________________________________________ 
+     |       |                                     |           |           |
+     |  Qty  |               Description           | Unit cost | Sub Total |
+     |_______|_____________________________________|___________|___________|
+     |       |                                     |           |           |
+     |       | Commercial Installation             |  AUD $225 | $         |
+     |_______|_____________________________________|___________|___________|
+     |       |                                     |           |           |
+     |       | Private Installation                |  AUD $ 65 | $         |
+     |_______|_____________________________________|___________|___________|
+                                                               |           |
+                                                       Total   | $         |
+                                                               |___________|
+
+
+Payment Details
+---------------
+                                      _
+     Cheque / money order enclosed   |_|   (convert AUD$ into local currency)
+
+OR   
+                                      _             _
+     Please debit my     Mastercard  |_|      Visa |_|   the above total.
+
+     Card number  : __ __ __ __   __ __ __ __   __ __ __ __   __ __ __ __
+
+     Card valid   : From  __ / __              To  __ / __
+
+     Signature    : ________________________   Date  : __ / __ / __
+

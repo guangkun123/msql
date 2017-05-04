@@ -1,0 +1,20 @@
+# 
+# Update testing
+#
+
+update test set user = 'David' where age = 26\p\g
+select * from test\p\g
+
+update test set user = 'Bambi' where user = 'David'\p\g
+select * from test\p\g
+
+update test set age=60 where age > 90 and age < 96\p\g
+select * from test\p\g
+
+update test set phone = 'XXX' where user like 'dumm%'\p\g
+select * from test\p\g
+
+update test2 set user = 'Nobody2' where fullname = NULL\p\g
+select * from test2\p\g
+update test2 set user = NULL where fullname = NULL\p\g
+select * from test2\p\g

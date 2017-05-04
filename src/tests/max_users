@@ -1,0 +1,23 @@
+#!/bin/sh
+
+MSQL=/usr/local/Minerva/bin/msql
+NUM_USER=5
+
+COUNT=0
+
+while test $COUNT -lt $NUM_USER
+do
+	echo "Starting client $COUNT"
+	(
+		sleep 1
+		(
+			echo ""
+			sleep 20
+			exit
+		) | $MSQL test
+	)&
+	COUNT=`expr $COUNT + 1`
+done
+
+sleep 30
+

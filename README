@@ -1,0 +1,153 @@
+README for mSQL version 1.0 Patch 16	 7 Jul 1996
+----------------------------------------------------------------------------
+
+
+General Info
+------------
+
+mSQL has been developed under Sun OS 4.1.1 but has been tested under
+Solaris 2.3, Ultrix 4.3, Linux, and OSF/1 (cc not gcc).  That said, it 
+should "autoconf" and build on most BSD derived systems, SVR4 based 
+systems or POSIX O/S's (that should cover most of them).  It has been
+reported that it works out-of-the-box on HP-UX, NeXT, SCO, Sequent,
+Cray, Tandem, *BSD  and a few others.  I haven't tested these so buyer beware.
+
+
+License
+---------
+
+mSQL has been released in the past under terms known as "conscience-ware",
+the basic concept of which was that companies that used the software
+could contribute a small ammount to the continued development of the
+software without any strict rules being placed upon such "donations".
+Although the concept sounds fair, it failed badly with only 3 contributions
+being made from over 3,600 copies of mSQL-1.0.5 that were ftp'ed from my
+machine alone.  Over 1,000 of those copies went to commercial organisations
+and I receive many questions a day from companies using mSQL behind
+their WWW servers etc who are looking for free support.
+
+In an attempt to balance this out and allow me to devote some time to
+mSQL (rather than other persuits that I do to generate an income), mSQL
+is now a commercial product.  I still believe in free software over the 
+Internet and cooperation in research so the new license is designed not to 
+hurt Universities, research groups and other people that _should_ have free
+access to software.  Commercial organisations that are using this so
+that they don't have to buy an Oracle or an Ingres will now have to buy
+mSQL (at a minute fraction of the cost of one of the commercial
+offerings).
+
+Please read the doc/License file to see if you are required to register
+your copy.  An invoice is included in both Postscript and ASCII format
+to ease the generation of payments.
+
+
+Installation
+------------
+
+To build mSQL, type "make target" in the top directory.  This will build
+a directory where the object files for your system will be made.  This
+mechanism allows you to NFS mount the sources onto different machines
+and build mSQL on different platforms without having to make copies of 
+the sources.  The directory will be under the "targets" directory (e.g.
+$(TOP)/targets/Solaris-2.3-Sparc )
+
+Once the target directory has been created, change directory into it and
+run "setup".  That will run autoconf and some other configuration
+scripts.  Some system wide configuraion items, including the language
+for error moessages, are defined in common/site.h so you should probably
+have a look at that file and change anything you feel needs to be
+changed.
+
+Once you've done that, just type make.  You should install the software 
+with "make install" when you're happy with it.  
+
+The default installation directory is /usr/local/Minerva.  This area is
+shared by all the development of Minerva (including the ESL scripting
+language and Minerva itself).  It's probably a good idea to leave it as
+that rather than /usr/local/msql or similar if you wish to use ESL
+(check out doc/Minerva for details on ESL or grab the ESL manual via ftp
+from Bond.edu.au in /pub/Minerva/esl )
+
+
+Testing the software
+--------------------
+
+Once it is installed, you can try the sample mSQL script provided in
+the msql source directory.  Fire up the server using
+
+	/usr/local/Minerva/bin/msqld&
+
+Create a test database using
+
+	/usr/local/Minerva/bin/msqladmin create test
+
+Run the script through the terminal monitor using
+
+	/usr/local/Minerva/bin/msql test < sample.msql
+
+There are also some further test scripts in the tests directory.  The
+"killer" test will produce performance figures about mSQL running on
+your machine.  Details such as the number of operations per second for
+inserts, fills and selects on both keyed and flat tables is generated.
+
+The most complete test is the regressions test found in test/rtest.  Run
+it using 'rtest DBname' where dbname is the name of a database it can
+trash.
+
+
+Notes :
+	o  If you run this on a Cray (what?  you don't have a Y-MP at
+	home? :) you'll have to remove -lsocket and -lx from EXTRA_LIB 
+	in site.mm after you run setup.
+
+	o If you are building this with gcc and see link errors like
+	__load.o(.text+0x1a): undefined reference to `mcount'
+	edit site.mm and set 'CC=gcc -static'
+
+
+
+
+Further Doco
+------------
+
+A set of WWW pages for mSQL are now available in the Hughes
+Technologies web site.  The URL is
+
+	http://Hughes.com.au/
+
+There is also a very complete FAQ maintained by Peter Samuel
+(Peter.Samuel@uniq.com.au) available in both text and HTML formats via 
+FTP from Bond.edu.au in /pub/Minerva/msql
+
+
+Bugs / Problems
+---------------
+
+If you find what you think is a bug or you have a problem or question
+you'd like answered, __please__ join the mailing list and ask your
+question there.  My mailbox floweth over.  I am continually getting
+messages to my private mailbox regarding old problems and other matters 
+that have been discussed many times on the mailing list.  It takes a lot
+of time to wade through the 100's of message I receive per week.
+
+You can join the mailing list by sending a message containing just the
+word "subscribe" to 
+
+	msql-list-request@Bunyip.com
+
+If you want to report a bug, please include the following :-
+
+	Include the output of "msqladmin version"
+	Include a dump of a test database using msqldump
+	Include a mSQL script that will show the bug
+
+You should also ensure that you are running the latest (stable) version
+of mSQL before mailing the list as I fix bugs in every version.
+
+
+
+   /   /            /              David J. Hughes       Bambi@Hughes.com.au
+  /___/       ___  /__  ___  ___   Managing Director     Hughes Technologies
+ /   / /  /  /  / /  / /__/ /__    Fax: +61 7 3302 2199  http://Hughes.com.au
+/   / /__/  /__/ /  / /__  ___/    _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/ _/
+            __/

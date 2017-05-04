@@ -1,0 +1,38 @@
+
+Welcome to the miniSQL monitor.  Type \h for help.
+
+
+mSQL >     ->     ->     ->     ->     ->     -> 
+Query buffer
+------------
+
+create table test (
+        user    char(10) primary key,
+        age     int,
+        phone   char(20)
+)
+
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL >     ->     ->     ->     ->     -> 
+Query buffer
+------------
+create table test2 (
+        user    char(10) not null,
+        fullname    char(30)
+) 
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL >     ->     -> 
+Bye!
+

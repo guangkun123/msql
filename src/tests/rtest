@@ -1,0 +1,107 @@
+#!/bin/sh
+# 
+# Regression tester for mSQL.
+#
+# This script just drives the individual tests in the rtest.src
+# directory.  Run it as "rtest <db>" where db is the name of a database.
+# The database will be created and destroyed during the testing so don't
+# use anything that already exists (the scripts wont let you anyway).
+#
+#						bambi.
+
+# If you want to do the testing on a machine other than the local box
+# (or you want to force a TCP connection) set the variable below to the
+# hostname of the box running the server
+#
+#MSQLHOST= -h Some.Other.Host
+
+
+# Do not uncomment this variable.  It is used to reset the test results
+# after a major change to the test suite or output format of msql
+#RESET=1
+
+DB=$1
+
+if test "$DB." = "."
+then
+	echo
+	echo "Bad usage.  Read the intro to the script for details!"
+	echo
+	exit 1
+fi
+
+#
+# Where are the programs we need
+#
+MSQLADMIN="../../msql/msqladmin"
+#MSQLADMIN="msqladmin"
+MSQL="../../msql/msql"
+#MSQL="msql"
+
+#
+# How can we echo without a newline?
+#
+if echo '\c' | grep -s c >/dev/null 2>&1
+then
+        ECHO_N="echo -n"
+        ECHO_C=""
+else
+        ECHO_N="echo"
+        ECHO_C='\c'
+fi
+
+#
+# Find out the names of the tests
+#
+cd rtest.src
+TESTS=`ls [0-9]*.test | sort -n | sed "s/\.test\$//"`
+rm -f *.res
+COUNT=0
+
+#
+# Setup a clean database
+#
+echo "y" | $MSQLADMIN drop $DB > /dev/null
+$MSQLADMIN create $DB
+if test $? -ne 0
+then
+	echo
+	echo
+	echo "Couldn't setup new database for testing."
+	echo
+	exit 1
+fi
+
+#
+# Run through the tests and bail out if there's an error.
+#
+echo
+echo "Starting tests."
+for I in $TESTS
+do
+	$ECHO_N ".$ECHO_C"
+	if test "$RESET." = "."
+	then
+		$MSQL $MSQHOST $DB < $I.test > $I.res 2>&1
+		diff $I.out $I.res > /dev/null
+		if test $? -ne 0 
+		then
+			echo
+			echo
+			echo "ERROR : Regression test failed on test \"$I\"."
+			echo "Test results have been saved in rtest.src/*.res"
+			echo
+			exit 1
+		fi
+	else
+		$MSQL $MSQHOST $DB < $I.test > $I.out 2>&1
+	fi
+	COUNT=`expr $COUNT + 1`
+done
+
+echo
+echo
+echo "All $COUNT tests have passed"
+echo "Results of the individual tests can be found in rtest.src/*.res"
+echo
+exit 0

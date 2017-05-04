@@ -1,0 +1,20 @@
+# Do some joins 
+
+
+select test2.fullname, test.age
+        from test2,test
+        where test.age > 20 
+\p\g
+
+
+select test2.fullname, test.age
+        from test2,test
+        where test2.user like 'B%'
+\p\g
+
+
+select test2.fullname, test.age
+        from test2,test
+        where test2.user = test.user
+\p\g
+

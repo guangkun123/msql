@@ -1,0 +1,22 @@
+# Do sorted joins
+
+select test2.fullname, test.age
+        from test2,test
+        where test.age > 20 
+	order by test.age, test2.fullname
+\p\g
+
+
+select test2.fullname, test.age
+        from test2,test
+        where test2.user like 'B%'
+	order by test2.fullname, test.age
+\p\g
+
+
+select test2.fullname, test.age
+        from test2,test
+        where test2.user = test.user
+	order by test2.fullname
+\p\g
+

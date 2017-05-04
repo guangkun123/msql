@@ -1,0 +1,14 @@
+LXm.c		: Local Motif library (eg standard dialog's etc)
+LXm.h		: Struct's and defines for the local Motif library
+MANIFEST	: This file
+Makefile	: Dummy Makefile to drive makegen
+Makefile.tmpl	: Makegen template file
+Minerva.h	: Depricated global header.
+config.h.in	: GNU Autoconf input file for config.h
+debug.c		: Multi-level debug routines.
+debug.h		: Definitions for above
+flock.c		: A reimplementation of flock() for sysV machines
+portability.h	: Misc routines that may be missing on some boxes
+site.h		: site specific configuration details
+strlib.c	: General string handling routines that may not be available
+ualarm.c	: A reimplementation of ualarm() in case it's not available

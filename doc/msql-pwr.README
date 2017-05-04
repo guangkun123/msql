@@ -1,0 +1,24 @@
+
+msql-pwr.gif is a small mSQL logo for use in WWW pages.  It is very
+small and has the usual "Powered by mSQL" message.  We would appreciated
+it if people who build WWW sites using mSQL would place this logo on
+their home page using the following HTML
+
+	<A HREF=http://Hughes.com.au/><IMG SRC=msql-pwr.gif BORDER=0></A>
+
+The image has a single color background (white) which can be made
+transparent easily if that suites your pages better.
+
+
+
+Thanks
+
+David J. Hughes
+Managing Director
+Hughes Technologies
+
+
+P.s.  I've also included msql-pwr2.gif, an alternate icon to use on your
+pages.  It was contributed by Lester Hightower <hightowe@scri.fsu.edu>
+and is the same size as the Netscape NOW button.   It can be viewed on
+http://www.railwayex.com/.

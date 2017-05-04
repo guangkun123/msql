@@ -1,0 +1,47 @@
+#
+# Site specific configuration
+#
+
+CC= @CC@
+LINK= $(CC)
+CPP= @CPP@
+RANLIB= @RANLIB@
+ARCH= @ARCH@
+
+YACC= @YACC@
+
+SIGLIST= @SIGLIST@
+DIRENT= @DIRENT@
+MMAP= @MMAP@
+U_INT= @U_INT@
+ROOT_EXEC= @ROOT_EXEC@
+ROOT= @ROOT@
+
+# Top of Minerva install tree
+INST_DIR= @INST_TOP@
+
+# Extra libraries if required
+EXTRA_LIB= @LIBS@
+
+# Any other CFlags required
+EXTRA_CFLAGS= @DEFS@
+
+# CC Only flags  
+# These flags are not passed to makedepend.  Example use is -pic
+CC_ONLY= 
+
+# Directory for pid file
+PID_DIR= @PID_DIR@
+
+CFLAGS= -g -I$(TOP)/ $(EXTRA_CFLAGS)
+LDLIBS= -L$(TOP)/lib $(EXTRA_LIB)
+
+
+#
+# EXPRIMENTAL - Don't play with this stuff
+#
+
+NEW_DB=
+NEW_DB_INC=
+NEW_DB_LIB=
+

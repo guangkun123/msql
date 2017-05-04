@@ -1,0 +1,432 @@
+#!/bin/sh
+#
+#  This is a killer test that produces timing results in msql.times
+#  It's run as "killer <dbName>" where dbName is an existing database
+#  in which it does it's thing.  It creates, drops and generally
+#  beats up on a table called "test" within the given database so
+#  run it somewhere that you don't have a test table.
+#
+#  You may need to change a couple of the definitions below depending
+#  on how you`re setup (eg "/var/adm/msqld.pid"  and  "bc -l")
+#
+#  The script tries to determine what sort of /bin/time you have and
+#  works properly with either a SysV or BSD styled time.
+#
+#							Bambi
+
+
+CREATE_KEY="create table test ( name char(40), num int primary key)"
+CREATE_FLAT="create table test ( name char(40), num int)"
+DROP="drop table test"
+DELETE="delete from test"
+
+TMP_FILE="/tmp/msql_test.out"
+RES_FILE="./msql.times"
+
+DB=$1
+NUM_TESTS=1
+NUM_INSERTS=10
+NUM_SELECTS=10
+
+CALC="bc -l"
+PID_FILE="/var/adm/msqld.pid"
+
+MSQL=/usr/local/Minerva/bin/msql
+
+
+PROFILE="N"
+
+
+if test "$DB." = "."
+then
+	echo 
+	echo "Bad usage.  Please read the intro to the script."
+	echo
+	exit 1
+fi
+
+#
+# Print the output file header
+#
+
+echo "mSQL Killer Test.     Test machine = `uname -a`" > $RES_FILE
+echo "------------------------------------------------------------" >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+
+#
+# Try to find time.  Linux may have it in /usr/bin
+#
+if test -f /bin/time
+then
+	BIN_TIME="/bin/time"
+else
+	if test -f /usr/bin/time
+	then
+		BIN_TIME="/usr/bin/time"
+	else
+		if test -f /usr/sbin/time
+		then
+			BIN_TIME="/usr/sbin/time"
+		fi
+	fi
+fi
+
+if test "$BIN_TIME." = "."
+then
+	echo "Can't find /bin/time, /usr/bin/time or /usr/sbin/time"
+	echo "Timing details ar not available"
+	BIN_TIME=""
+	echo "time not found.  No timing details available" >> $RES_FILE
+	echo >> $RES_FILE
+	echo >> $RES_FILE
+else
+	echo "Using $BIN_TIME for timing calculations"
+	$BIN_TIME --version >/dev/null  2>&1
+	if test $? -eq 0
+	then
+		echo "$BIN_TIME is actually GNU time.  Using --portability."
+		BIN_TIME="$BIN_TIME --portability"
+	fi
+fi
+
+
+
+#
+# What sort of /bin/time do we have?
+#
+
+if test `$BIN_TIME /bin/test 2>&1 | wc -l` -gt 1
+then
+	echo "$BIN_TIME produces System V styled output."
+	TIME_CALC="(grep -i \"^real\" | awk '{ print \$2 }')"
+else
+	echo "$BIN_TIME produces BSD styled output."
+	TIME_CALC="awk '{ print \$1 }'"
+fi
+
+
+
+#########################################################################
+# Insert into a new keyed table
+#
+
+COUNT=0
+rm -f $TMP_FILE
+TOTAL=0
+if test "$PROFILE." = "Y."
+then
+	kill -INT `cat $PID_FILE`
+	sleep 1
+	../msql/msqld&
+	sleep 1
+fi
+echo "Inserting $NUM_INSERTS rows into new keyed table gave :-" >> $RES_FILE
+while test $COUNT -lt $NUM_TESTS
+do
+	echo "Dropping test table"
+	echo "$DROP \p\g" | ($MSQL $DB > /dev/null)
+	echo "Creating keyed table"
+	echo "$CREATE_KEY \p\g" | ($MSQL $DB > /dev/null)
+	echo "Inserting $NUM_INSERTS rows into keyed table"
+	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
+	if test $? -ne 0
+	then
+		echo
+		echo "Test failed!  Aborting."
+		echo
+		exit 1
+	fi
+	TIME=`(eval $TIME_CALC) < $TMP_FILE`
+	echo "	$TIME seconds real time" >> $RES_FILE
+	TOTAL=`echo "$TOTAL + $TIME" | $CALC`
+	COUNT=`expr $COUNT + 1`
+	echo "Inserts took $TIME seconds"
+done
+
+echo >> $RES_FILE
+AVG=`echo "($NUM_INSERTS * $NUM_TESTS) / $TOTAL" | $CALC | sed "s/\..*//"`
+echo "	Total time = $TOTAL" >> $RES_FILE
+echo "	Average operations per second = $AVG" >> $RES_FILE
+
+if test "$PROFILE." = "Y."
+then
+	kill -INT `cat $PID_FILE`
+	sleep 1
+	echo >> $RES_FILE
+	echo >> $RES_FILE
+	prof ../msql/msqld | head -10 >> $RES_FILE
+fi
+
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+
+
+#########################################################################
+# Filling a deleted keyed table
+#
+
+COUNT=0
+rm -f $TMP_FILE
+TOTAL=0
+if test "$PROFILE." = "Y."
+then
+	../msql/msqld&
+	sleep 1
+fi
+echo "Filling a deleted keyed table with $NUM_INSERTS rows gave :-" >> $RES_FILE
+while test $COUNT -lt $NUM_TESTS
+do
+	echo "Deleting contents of keyed table"
+	echo "$DELETE \p\g" | ($MSQL $DB > /dev/null)
+	echo "Filling data holes with $NUM_INSERTS inserts."
+	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
+	if test $? -ne 0
+	then
+		echo
+		echo "Test failed!  Aborting."
+		echo
+		exit 1
+	fi
+	TIME=`(eval $TIME_CALC) < $TMP_FILE`
+	echo "	$TIME seconds real time" >> $RES_FILE
+	TOTAL=`echo "$TOTAL + $TIME" | $CALC`
+	COUNT=`expr $COUNT + 1`
+	echo "Inserts took $TIME seconds."
+done
+
+echo >> $RES_FILE
+AVG=`echo "($NUM_INSERTS * $NUM_TESTS) / $TOTAL" | $CALC| sed "s/\..*//"`
+echo "	Total time = $TOTAL" >> $RES_FILE
+echo "	Average operations per second = $AVG" >> $RES_FILE
+
+if test "$PROFILE." = "Y."
+then
+	kill -INT `cat $PID_FILE`
+	sleep 1
+	echo >> $RES_FILE
+	echo >> $RES_FILE
+	prof ../msql/msqld | head -10 >> $RES_FILE
+fi
+
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+
+
+
+
+
+#########################################################################
+# Selecting from a keyed table
+#
+
+COUNT=0
+rm -f $TMP_FILE
+TOTAL=0
+if test "$PROFILE." = "Y."
+then
+	../msql/msqld&
+	sleep 1
+fi
+echo "Selecting $NUM_SELECTS rows using primary key :-" >> $RES_FILE
+while test $COUNT -lt $NUM_TESTS
+do
+	echo "Selecting $NUM_SELECTS rows from a keyed table"
+	$BIN_TIME ../msql/select_test $DB $NUM_SELECTS 2> $TMP_FILE
+	if test $? -ne 0
+	then
+		echo
+		echo "Test failed!  Aborting."
+		echo
+		exit 1
+	fi
+	TIME=`(eval $TIME_CALC) < $TMP_FILE`
+	echo "	$TIME seconds real time" >> $RES_FILE
+	TOTAL=`echo "$TOTAL + $TIME" | $CALC`
+	COUNT=`expr $COUNT + 1`
+	echo "Selects took $TIME seconds"
+done
+
+echo >> $RES_FILE
+AVG=`echo "($NUM_SELECTS * $NUM_TESTS) / $TOTAL" | $CALC| sed "s/\..*//"`
+echo "	Total time = $TOTAL" >> $RES_FILE
+echo "	Average operations per second = $AVG" >> $RES_FILE
+
+if test "$PROFILE." = "Y."
+then
+	kill -INT `cat $PID_FILE`
+	sleep 1
+	echo >> $RES_FILE
+	echo >> $RES_FILE
+	prof ../msql/msqld | head -10 >> $RES_FILE
+fi
+
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+
+
+
+
+
+#########################################################################
+# Insert into a new flat table
+#
+
+COUNT=0
+rm -f $TMP_FILE
+TOTAL=0
+if test "$PROFILE." = "Y."
+then
+	../msql/msqld&
+	sleep 1
+fi
+echo "Inserting $NUM_INSERTS rows into new flat table gave :-" >> $RES_FILE
+while test $COUNT -lt $NUM_TESTS
+do
+	echo "Dropping test table"
+	echo "$DROP \p\g" | ($MSQL $DB > /dev/null)
+	echo "Creating flat table"
+	echo "$CREATE_FLAT \p\g" | ($MSQL $DB > /dev/null)
+	echo "Inserting $NUM_INSERTS rows into flat table"
+	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
+	if test $? -ne 0
+	then
+		echo
+		echo "Test failed!  Aborting."
+		echo
+		exit 1
+	fi
+	TIME=`(eval $TIME_CALC) < $TMP_FILE`
+	echo "	$TIME seconds real time" >> $RES_FILE
+	TOTAL=`echo "$TOTAL + $TIME" | $CALC`
+	COUNT=`expr $COUNT + 1`
+	echo "Inserts took $TIME seconds."
+done
+
+echo >> $RES_FILE
+AVG=`echo "($NUM_INSERTS * $NUM_TESTS) / $TOTAL" | $CALC| sed "s/\..*//"`
+echo "	Total time = $TOTAL" >> $RES_FILE
+echo "	Average operations per second = $AVG" >> $RES_FILE
+
+if test "$PROFILE." = "Y."
+then
+	kill -INT `cat $PID_FILE`
+	sleep 1
+	echo >> $RES_FILE
+	echo >> $RES_FILE
+	prof ../msql/msqld | head -10 >> $RES_FILE
+fi
+
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+
+
+#########################################################################
+# Filling a flat table
+#
+
+COUNT=0
+rm -f $TMP_FILE
+TOTAL=0
+if test "$PROFILE." = "Y."
+then
+	../msql/msqld&
+	sleep 1
+fi
+echo "Filling a deleted flat table with $NUM_INSERTS rows gave :-" >> $RES_FILE
+while test $COUNT -lt $NUM_TESTS
+do
+	echo "Deleting contents of flat table"
+	echo "$DELETE \p\g" | ($MSQL $DB > /dev/null)
+	echo "Filling data holes with $NUM_INSERTS inserts."
+	$BIN_TIME ../msql/insert_test $DB $NUM_INSERTS 2> $TMP_FILE
+	if test $? -ne 0
+	then
+		echo
+		echo "Test failed!  Aborting."
+		echo
+		exit 1
+	fi
+	TIME=`(eval $TIME_CALC) < $TMP_FILE`
+	echo "	$TIME seconds real time" >> $RES_FILE
+	TOTAL=`echo "$TOTAL + $TIME" | $CALC`
+	COUNT=`expr $COUNT + 1`
+	echo "Inserts took $TIME seconds"
+done
+
+echo >> $RES_FILE
+AVG=`echo "($NUM_INSERTS * $NUM_TESTS) / $TOTAL" | $CALC| sed "s/\..*//"`
+echo "	Total time = $TOTAL" >> $RES_FILE
+echo "	Average operations per second = $AVG" >> $RES_FILE
+
+if test "$PROFILE." = "Y."
+then
+	kill -INT `cat $PID_FILE`
+	sleep 1
+	echo >> $RES_FILE
+	echo >> $RES_FILE
+	prof ../msql/msqld | head -10 >> $RES_FILE
+fi
+
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+
+
+
+#########################################################################
+# Selecting from a flat table
+#
+
+COUNT=0
+rm -f $TMP_FILE
+TOTAL=0
+if test "$PROFILE." = "Y."
+then
+	../msql/msqld&
+	sleep 1
+fi
+echo "Selecting $NUM_SELECTS rows without a key :-" >> $RES_FILE
+while test $COUNT -lt $NUM_TESTS
+do
+	$BIN_TIME ../msql/select_test $DB $NUM_SELECTS 2> $TMP_FILE
+	if test $? -ne 0
+	then
+		echo
+		echo "Test failed!  Aborting."
+		echo
+		exit 1
+	fi
+	TIME=`(eval $TIME_CALC) < $TMP_FILE`
+	echo "	$TIME seconds real time" >> $RES_FILE
+	TOTAL=`echo "$TOTAL + $TIME" | $CALC`
+	COUNT=`expr $COUNT + 1`
+done
+
+echo >> $RES_FILE
+AVG=`echo "($NUM_SELECTS * $NUM_TESTS) / $TOTAL" | $CALC| sed "s/\..*//"`
+echo "	Total time = $TOTAL" >> $RES_FILE
+echo "	Average operations per second = $AVG" >> $RES_FILE
+
+if test "$PROFILE." = "Y."
+then
+	kill -INT `cat $PID_FILE`
+	sleep 1
+	echo >> $RES_FILE
+	echo >> $RES_FILE
+	prof ../msql/msqld | head -10 >> $RES_FILE
+fi
+
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE
+echo >> $RES_FILE

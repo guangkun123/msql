@@ -1,0 +1,11 @@
+
+CC_FLAGS= $(CFLAGS) $(U_INT)
+LINT_FLAGS= $(LINTFLAGS) 
+
+all: debug.o
+all: tmpnam.o
+all: strlib.o
+
+!object strlib.o strlib.c
+!object debug.o debug.c
+!object tmpnam.o tmpnam.c

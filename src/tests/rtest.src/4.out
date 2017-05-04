@@ -1,0 +1,223 @@
+
+Welcome to the miniSQL monitor.  Type \h for help.
+
+
+mSQL >     -> 
+Query buffer
+------------
+
+update test set user = 'David' where age = 26
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+10 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | David      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ | dummy1     | 99       | 99                   |
+ | dummy2     | 97       | 97                   |
+ | dummy3     | 95       | 95                   |
+ | dummy4     | 93       | 93                   |
+ | dummy5     | 91       | 91                   |
+ | dummy6     | 89       | 89                   |
+ | dummy7     | 87       | 87                   |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+update test set user = 'Bambi' where user = 'David'
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+10 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ | dummy1     | 99       | 99                   |
+ | dummy2     | 97       | 97                   |
+ | dummy3     | 95       | 95                   |
+ | dummy4     | 93       | 93                   |
+ | dummy5     | 91       | 91                   |
+ | dummy6     | 89       | 89                   |
+ | dummy7     | 87       | 87                   |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+update test set age=60 where age > 90 and age < 96
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+10 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ | dummy1     | 99       | 99                   |
+ | dummy2     | 97       | 97                   |
+ | dummy3     | 60       | 95                   |
+ | dummy4     | 60       | 93                   |
+ | dummy5     | 60       | 91                   |
+ | dummy6     | 89       | 89                   |
+ | dummy7     | 87       | 87                   |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+update test set phone = 'XXX' where user like 'dumm%'
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test
+[continue]
+    -> 
+Query OK.
+
+10 rows matched.
+
+ +------------+----------+----------------------+
+ | user       | age      | phone                |
+ +------------+----------+----------------------+
+ | Bambi      | 26       | (075) 951450         |
+ | paulp      | 25       | (075) 951412         |
+ | fred       | 31       | (075) 951431         |
+ | dummy1     | 99       | XXX                  |
+ | dummy2     | 97       | XXX                  |
+ | dummy3     | 60       | XXX                  |
+ | dummy4     | 60       | XXX                  |
+ | dummy5     | 60       | XXX                  |
+ | dummy6     | 89       | XXX                  |
+ | dummy7     | 87       | XXX                  |
+ +------------+----------+----------------------+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+update test2 set user = 'Nobody2' where fullname = NULL
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+select * from test2
+[continue]
+    -> 
+Query OK.
+
+4 rows matched.
+
+ +------------+--------------------------------+
+ | user       | fullname                       |
+ +------------+--------------------------------+
+ | paulp      | Paul Pyyvaara                  |
+ | Bambi      | David J. Hughes                |
+ | fred       | Fred O'Niell                   |
+ | Nobody2    | NULL                           |
+ +------------+--------------------------------+
+
+
+
+mSQL > 
+Query buffer
+------------
+update test2 set user = NULL where fullname = NULL
+[continue]
+    -> 
+
+ERROR : Field "user" cannot be null
+
+
+mSQL > 
+Query buffer
+------------
+select * from test2
+[continue]
+    -> 
+Query OK.
+
+4 rows matched.
+
+ +------------+--------------------------------+
+ | user       | fullname                       |
+ +------------+--------------------------------+
+ | paulp      | Paul Pyyvaara                  |
+ | Bambi      | David J. Hughes                |
+ | fred       | Fred O'Niell                   |
+ | Nobody2    | NULL                           |
+ +------------+--------------------------------+
+
+
+
+mSQL > 
+Bye!
+

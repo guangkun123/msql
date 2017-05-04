@@ -1,0 +1,18 @@
+#
+# Access control for mSQL
+#
+# Entries are of the form
+#
+
+database=test
+read=bambi,-root
+write=root
+host=*
+access=local,remote
+option=rfc931
+
+database=minerva
+read=*
+write=minerva
+access=local
+

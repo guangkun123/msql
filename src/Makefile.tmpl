@@ -1,0 +1,40 @@
+
+all :: all_intro
+
+all_intro :
+	@echo ;\\
+	echo "Starting make for mSQL" ;\\
+	echo
+
+install ::
+	@echo 					;\\
+	echo "Starting install for mSQL" 	;\\
+	echo 					;\\
+	cd ../.. ; scripts/make-install $(INST_DIR)
+
+!directory makedepend all,clean
+!directory regexp all,clean
+!directory common all,clean,install
+!directory msql all,clean,install
+
+all :: all_footer
+
+all_footer:
+	@echo ;\\
+	echo "Make of mSQL complete.";\\
+	echo "You should now mSQL using \"make install\"" ;\\
+	echo ;\\
+	echo "NOTE : mSQL cannot be used free of charge at commercial sites."; \\
+	echo "       Please read the doc/License file to see what you have to do."; \\
+	echo
+
+install ::
+	@cp ../../doc/*.ps $(INST_DIR)/doc; \\
+	cp ../../doc/License $(INST_DIR)/doc/License.mSQL; \\
+	echo ;\\
+	echo "Installation of mSQL complete." ;\\
+	echo ;\\
+	echo "NOTE : mSQL cannot be used free of charge at commercial sites."; \\
+	echo "       Please read the doc/License file to see what you have to do."; \\
+	echo
+

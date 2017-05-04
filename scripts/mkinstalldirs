@@ -1,0 +1,38 @@
+#!/bin/sh
+# Make directory hierarchy. 
+# Written by Noah Friedman <friedman@prep.ai.mit.edu>
+# Modified to include directory modes David J. Hughes (Bambi@Bond.edu.au)
+# Public domain.
+
+defaultIFS=' 	
+'
+IFS="${IFS-${defaultIFS}}"
+
+errstatus=0
+
+MODE=$1
+FILE=$2
+
+oIFS="${IFS}"
+# Some sh's can't handle IFS=/ for some reason.
+IFS='%'
+set - `echo ${FILE} | sed -e 's@/@%@g' -e 's@^%@/@'`
+IFS="${oIFS}"
+
+pathcomp=''
+
+for d in ${1+"$@"} ; do
+	pathcomp="${pathcomp}${d}"
+	if test ! -d "${pathcomp}"
+	then
+		echo "mkdir $pathcomp; chmod $MODE $pathcomp" 1>&2
+		mkdir "${pathcomp}" || errstatus=$?
+		chmod "${MODE}" "${pathcomp}" || errstatus=$?
+		
+	fi
+	pathcomp="${pathcomp}/"
+done
+
+exit $errstatus
+
+# eof

@@ -1,0 +1,227 @@
+#!/bin/sh
+#
+#	Configuration script for mSQL.  This calls an autoconf generated
+#	script for most of the hard work but does a few other checks
+#	itself
+#						bambi
+
+
+# Is this a Posix or bsd-ish shell?
+
+if echo '\c' | grep -s c >/dev/null 2>&1
+then
+	ECHO_N="echo -n"
+	ECHO_C=""
+else
+	ECHO_N="echo"
+	ECHO_C='\c'
+fi
+
+echo
+echo "Starting build of mSQL."
+echo 
+echo
+echo "Interactive configuration section"
+echo 
+echo "	Note : Any prompt below that asks for a directory requires an"
+echo "	       absolute pathname.  A relative pathname such as ../foo"
+echo "	       or symbolic paths such as ~user/msql will not work"
+echo
+echo 
+$ECHO_N "	Top of install tree ? [/usr/local/Minerva] $ECHO_C"
+read INST_TOP
+if test "$INST_TOP." = "."
+then
+	INST_TOP=/usr/local/Minerva
+fi
+
+$ECHO_N "	Will this installation be running as root ? [y] $ECHO_C"
+read ANS
+if test "$ANS." = "."
+then
+	ANS="y"
+fi
+if echo $ANS | grep -i "y" > /dev/null
+then
+	ROOT_EXEC="-DROOT_EXEC"
+	ROOT="root"
+else
+	ROOT_EXEC=""
+	$ECHO_N "	What username will it run under ?  $ECHO_C"
+	read ROOT
+fi
+
+
+PID_DIRS="/var/adm /var/log /usr/adm /private/adm"
+PID_DIR=""
+for dir in $PID_DIRS
+do
+	if test -d $dir
+	then
+		PID_DIR=${dir}
+		break
+	fi
+done
+$ECHO_N "	Directory for pid file ? [${PID_DIR}] $ECHO_C"
+read RESPONSE
+if test "$RESPONSE." != "."
+then
+	PID_DIR=$RESPONSE
+fi
+
+
+echo
+echo
+echo "Automatic configuration section"
+echo
+
+cp conf/site.mm.in .
+chmod u+w site.mm.in
+
+. conf/configure -v
+
+if test "$LEX." = "flex."
+then
+	FLEX="1"
+else
+	FLEX="0"
+fi
+
+
+#
+# Work out how to do a readdir().  Could be Posix dirent or direct.
+# Could need dirent.h, sys/dir.h or even both!  (God help us).
+#
+
+echo
+$ECHO_N "checking your directory stuff. $ECHO_C"
+cd conf
+	DIRENT=""
+	# Try Posix first
+	rm -f dirent
+	DEFS="-DHAVE_DIRENT_H -DHAVE_DIRENT"
+	${CC-cc} -I../ -o dirent $DEFS dirent.c >/dev/null 2>&1
+	if test $? = 0
+	then
+		DIRENT=$DEFS
+		echo " Using dirent.h and struct dirent"
+	fi
+
+	# Try old style
+	if test "$DIRENT." = "."
+	then
+		rm -f dirent
+		DEFS="-DHAVE_SYS_DIR_H -DHAVE_DIRECT"
+		${CC-cc} -I../ -o dirent $DEFS dirent.c >/dev/null 2>&1
+		if test $? = 0
+		then
+			DIRENT=$DEFS
+			echo " Using sys/dir.h and struct direct"
+		fi
+	fi
+
+	# O.K. Time to get silly
+	if test "$DIRENT." = "."
+	then
+		rm -f dirent
+		DEFS="-DHAVE_DIRENT_H -DHAVE_SYS_DIR_H -DHAVE_DIRECT"
+		${CC-cc} -I../ -o dirent $DEFS dirent.c >/dev/null 2>&1
+		if test $? = 0
+		then
+			DIRENT=$DEFS
+			echo " Using sys/dir.h, dirent.h and struct direct"
+		fi
+	fi
+
+	if test "$DIRENT." = "."
+	then
+		echo
+		echo
+		echo "Hang on!  Could't work out your directory routines"
+		echo "Check out conf/dirent.c and see what you need defined"
+		echo "to make it compile.  When you've worked that out,"
+		echo "rerun this script and enter the details at the prompt"
+		echo "offered below (e.g. -DHAVE_DIRENT -DHAVE_DIRENT_H) :-"
+		echo 
+		$ECHO_N "Defines for directory stuff? "
+		read DIRENT
+	fi
+
+
+
+rm -f dirent
+cd ..
+
+
+#
+# mmap() test.
+#
+
+$ECHO_N "checking mmap(). $ECHO_C"
+
+cd conf
+${CC-cc} -I../ -o mmap mmap.c >/dev/null 2>&1
+if test $? != 0
+then
+	MMAP=
+	echo " You don't have mmap(), I'll use read and write"
+else
+	./mmap
+	if test $? != 0
+	then
+		echo " Your mmap() isn't good enough, I'll use read and write"
+		MMAP=
+	else
+		echo " Your mmap() is fine."
+		MMAP="-DHAVE_MMAP"
+	fi
+fi
+rm -f mmap
+cd ..
+
+
+#
+# u_int test.
+#
+
+$ECHO_N "checking for u_int. $ECHO_C"
+
+cd conf
+${CC-cc} -I../ -o uint uint.c >/dev/null 2>&1
+if test $? != 0
+then
+	U_INT=
+	echo " You don't have u_int in sys/types.h"
+else
+	U_INT="-DHAVE_U_INT"
+	echo " You're fine."
+fi
+cd ..
+
+
+ARCH=`cat arch-info`
+mv site.mm site.mm.$$
+sed "	s,@INST_TOP@,$INST_TOP,
+	s,@FLEX@,$FLEX,
+	s,@SIGLIST@,$SIGLIST,
+	s,@DIRENT@,$DIRENT,
+	s,@MMAP@,$MMAP,
+	s,@U_INT@,$U_INT,
+	s,@ROOT_EXEC@,$ROOT_EXEC,
+	s,@ROOT@,$ROOT,
+	s,@PID_DIR@,$PID_DIR,
+	s,@ARCH@,$ARCH,
+" < site.mm.$$ > site.mm
+rm site.mm.$$
+
+echo
+echo "Ready to build mSQL."
+echo
+echo
+echo
+echo "You may wish to check \"common/site.h\" although the defaults should be"
+echo "fine.  When you're ready, type  \"make all\" to build the software"
+echo
+echo
+echo
+echo

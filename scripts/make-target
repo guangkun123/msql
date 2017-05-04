@@ -1,0 +1,75 @@
+#!/bin/sh
+
+SYM_OPT="-s"
+
+#
+# Check out how we can do an echo without a newline
+#
+if echo '\c' | grep -s c >/dev/null 2>&1 
+then 
+	ECHO_N="echo -n" 
+	ECHO_C="" 
+else 
+	ECHO_N="echo" 
+	ECHO_C='\c' 
+fi
+
+
+#
+# Work out the target and see if there's a directory there already
+#
+
+echo
+TARG=`scripts/sys-arch` 
+if test -d targets/$${TARG}
+then 
+	${ECHO_N} "Target directory for ${TARG} exists! ${ECHO_C}"
+	${ECHO_N} "Clear it? [y/n] ${ECHO_C} "
+	read ANS 
+	if test ${ANS}"." = "y." 
+	then 
+		echo "Clearing old target directory for ${TARG}" 
+		rm -rf targets/${TARG}
+	else 
+		echo 
+		echo "OK. I'll fill the gaps (there will be warnings)"
+		echo 
+	fi
+fi
+
+
+#
+# Build the target dir
+#
+
+if test ! -d targets
+then 
+	mkdir targets 
+fi 
+mkdir targets/${TARG}
+mkdir targets/${TARG}/lib
+echo ${TARG} > targets/${TARG}/arch-info
+echo
+echo Making target directory for ${TARG}
+cd targets/${TARG}
+echo
+echo Building directory tree. 
+for DIR in `find ../../src ! -name CVS -type d -print | sed "s,^../../src/,,"`
+do 
+	if test ${DIR} != "../../src"
+	then 
+		echo "	Adding $DIR" 
+		mkdir ${DIR} 
+	fi
+done 
+echo
+echo Adding sym-links 
+for FILE in `find ../../src ! -type d -print | grep -v "/CVS/" | sed "s,^../../src/,,"`
+do
+	${ECHO_N} ".${ECHO_C}"
+	OFFSET=`echo $FILE | sed "s,[^/],,g" | sed "s,/,../,g"` 
+	ln ${SYM_OPT} ../../$OFFSET/src/$FILE $FILE ;\
+done 
+echo
+echo; echo Build of target directory for $TARG complete 
+echo

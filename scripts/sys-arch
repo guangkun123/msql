@@ -1,0 +1,52 @@
+#!/bin/sh
+
+machine=`uname -m | tr "/" "_"`
+os=`uname -s | tr "/" "_"`
+rev=`uname -r | tr "/" "_"`
+
+if test "$machine." = "."
+then
+	echo	1>&2
+	echo	1>&2
+	echo "You don't appear to have the uname command anywhere." 1>&2
+	echo "Please describe your system (eg.  SunOS-4.1-sparc)" 1>&2
+	read info
+	echo	1>&2
+	echo	1>&2
+	echo $info
+	exit
+fi
+	
+
+if echo "$machine" | grep "^sun4" > /dev/null
+then
+	machine="Sparc"
+fi
+
+
+if echo "$os" | grep "^ULTRIX" > /dev/null
+then
+	os="Ultrix"
+fi
+
+
+if test "$os" = "SunOS"
+then
+	maj=`echo $rev | sed "s,^\([0-9]*\)\.\(.*\),\1,"`
+	min=`echo $rev | sed "s,^\([0-9]*\)\.\(.*\),\2,"`
+	if test $maj -gt 4
+	then
+		os="Solaris"
+		rev="2.$min"
+	fi
+fi
+
+if test "$os" = "AIX"
+then
+	machine="rs6000"
+	maj=`uname -v`
+	min=`uname -r`
+	rev="$maj.$min"
+fi
+
+echo "${os}-${rev}-${machine}" | sed 's/ /_/g'

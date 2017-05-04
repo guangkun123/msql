@@ -1,0 +1,12 @@
+#!/bin/sh
+
+INST_DIR=$1
+
+scripts/mkinstalldirs 0755    $INST_DIR/bin 
+scripts/mkinstalldirs 0755    $INST_DIR/include 
+scripts/mkinstalldirs 0755    $INST_DIR/lib
+scripts/mkinstalldirs 0755    $INST_DIR/msqldb
+scripts/mkinstalldirs 0755    $INST_DIR/msqldb/.tmp
+scripts/mkinstalldirs 0755    $INST_DIR/doc
+cp doc/*.ps $INST_DIR/doc
+

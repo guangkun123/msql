@@ -1,0 +1,28 @@
+#
+# This makegen template is grafted from the original Makefile (also
+# included in this directory).  Look there for further porting hints
+#
+
+
+# Things you might want to put in ENV and LENV:
+# -Dvoid=int		compilers that don't do void
+# -DCHARBITS=0377	compilers that don't do unsigned char
+# -DSTATIC=extern	compilers that don't like "static foo();" as forward dec
+# -DSTRCSPN		library does not have strcspn()
+# -Dstrchr=index	library does not have strchr()
+
+ENV=
+LENV=-Dvoid=int -DCHARBITS=0377
+
+
+CC_FLAGS= $(CFLAGS) $(ENV) -I. $(U_INT)
+LINT_FLAGS= $(LINTFLAGS) $(ENV) -I.
+
+!library libregexp.a regexp.c,regsub.c
+
+all : ../lib/libregexp.a
+
+../lib/libregexp.a: libregexp.a
+	rm -f ../lib/libregexp.a
+	ln -s ../regexp/libregexp.a ../lib/libregexp.a
+	$(RANLIB) ../lib/libregexp.a

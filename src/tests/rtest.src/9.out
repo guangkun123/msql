@@ -1,0 +1,238 @@
+
+Welcome to the miniSQL monitor.  Type \h for help.
+
+
+mSQL >     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     -> 
+Query buffer
+------------
+
+select 
+	a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,
+	b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,
+	c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,
+	d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,
+	e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,
+	f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,
+	g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,
+	h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,
+	i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,
+	j0,j1,j2,j3,j4,j5,j6,j7,j8,j9
+from test 
+[continue]
+    -> 
+
+ERROR : Too many fileds in query
+
+
+mSQL >     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     -> 
+Query buffer
+------------
+select user from test where
+	a0='z' and a1='z' and a2='z' and a3='z' and a4='z' and a5='z' and 
+	a6='z' and a7='z' and a8='z' and a9='z' and 
+	b0='z' and b1='z' and b2='z' and b3='z' and b4='z' and b5='z' and 
+	b6='z' and b7='z' and b8='z' and b9='z' and 
+	c0='z' and c1='z' and c2='z' and c3='z' and c4='z' and c5='z' and 
+	c6='z' and c7='z' and c8='z' and c9='z' and 
+	d0='z' and d1='z' and d2='z' and d3='z' and d4='z' and d5='z' and 
+	d6='z' and d7='z' and d8='z' and d9='z' and 
+	e0='z' and e1='z' and e2='z' and e3='z' and e4='z' and e5='z' and 
+	e6='z' and e7='z' and e8='z' and e9='z' and 
+	f0='z' and f1='z' and f2='z' and f3='z' and f4='z' and f5='z' and 
+	f6='z' and f7='z' and f8='z' and f9='z' and 
+	g0='z' and g1='z' and g2='z' and g3='z' and g4='z' and g5='z' and 
+	g6='z' and g7='z' and g8='z' and g9='z' and 
+	h0='z' and h1='z' and h2='z' and h3='z' and h4='z' and h5='z' and 
+	h6='z' and h7='z' and h8='z' and h9='z' and 
+	i0='z' and i1='z' and i2='z' and i3='z' and i4='z' and i5='z' and 
+	i6='z' and i7='z' and i8='z' and i9='z' and 
+	j0='z' and j1='z' and j2='z' and j3='z' and j4='z' and j5='z' and 
+	j6='z' and j7='z' and j8='z' and j9='z'
+
+[continue]
+    -> 
+
+ERROR : Too many fields in condition
+
+
+mSQL >     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     -> 
+Query buffer
+------------
+select user from test order by
+	a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, 
+	b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, 
+	c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, 
+	d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, 
+	e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, 
+	f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, 
+	g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, 
+	h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, 
+	i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, 
+	j0, j1, j2, j3, j4, j5, j6, j7, j8, j9
+
+[continue]
+    -> 
+
+ERROR : Too many fields in order specification
+
+
+mSQL >     ->     ->     ->     ->     -> 
+Query buffer
+------------
+insert into test (user, age, phone)
+	values ( 'blah', 10, 1234)
+
+[continue]
+    -> 
+
+ERROR : Literal value for 'phone' is wrong type
+
+
+mSQL >     ->     ->     ->     -> 
+Query buffer
+------------
+insert into test (user, age, phone)
+	values ( 'blah', 'blah', 'blah')
+
+[continue]
+    -> 
+
+ERROR : Literal value for 'age' is wrong type
+
+
+mSQL >     ->     ->     ->     -> 
+Query buffer
+------------
+select blah from test
+
+[continue]
+    -> 
+
+ERROR : Unknown field "test.blah"
+
+
+mSQL >     ->     -> 
+Query buffer
+------------
+select test1.user, test2.blah from test1,test2
+
+[continue]
+    -> 
+
+ERROR : Error reading table "test1" definition
+
+
+mSQL >     ->     ->     ->     -> 
+Query buffer
+------------
+
+select test1.user from test1, test2 where test1.user = user
+
+[continue]
+    -> 
+
+ERROR : Error reading table "test1" definition
+
+
+mSQL >     ->     ->     -> 
+Query buffer
+------------
+select user from test where age = 'foo'
+
+[continue]
+    -> 
+
+ERROR : Bad type for comparison of 'age'
+
+
+mSQL >     ->     -> 
+Query buffer
+------------
+select user from test where age like 2
+
+[continue]
+    -> 
+
+ERROR : Can't perform LIKE on int value
+
+
+mSQL >     ->     ->     ->     -> 
+Query buffer
+------------
+
+select user from foo
+
+[continue]
+    -> 
+
+ERROR : Error reading table "foo" definition
+
+
+mSQL >     ->     ->     -> 
+Query buffer
+------------
+create table test (
+	dummy	char(10)
+)
+[continue]
+    -> 
+
+ERROR : Table "test" exists
+
+
+mSQL >     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     ->     -> 
+Query buffer
+------------
+create table foo ( 
+	a0 char(10),a1 char(10),a2 char(10),a3 char(10),a4 char(10),
+	a5 char(10),a6 char(10),a7 char(10),a8 char(10),a9 char(10),
+	b0 char(10),b1 char(10),b2 char(10),b3 char(10),b4 char(10),
+	b5 char(10),b6 char(10),b7 char(10),b8 char(10),b9 char(10),
+	c0 char(10),c1 char(10),c2 char(10),c3 char(10),c4 char(10),
+	c5 char(10),c6 char(10),c7 char(10),c8 char(10),c9 char(10),
+	d0 char(10),d1 char(10),d2 char(10),d3 char(10),d4 char(10),
+	d5 char(10),d6 char(10),d7 char(10),d8 char(10),d9 char(10),
+	e0 char(10),e1 char(10),e2 char(10),e3 char(10),e4 char(10),
+	e5 char(10),e6 char(10),e7 char(10),e8 char(10),e9 char(10),
+	f0 char(10),f1 char(10),f2 char(10),f3 char(10),f4 char(10),
+	f5 char(10),f6 char(10),f7 char(10),f8 char(10),f9 char(10),
+	g0 char(10),g1 char(10),g2 char(10),g3 char(10),g4 char(10),
+	g5 char(10),g6 char(10),g7 char(10),g8 char(10),g9 char(10),
+	h0 char(10),h1 char(10),h2 char(10),h3 char(10),h4 char(10),
+	h5 char(10),h6 char(10),h7 char(10),h8 char(10),h9 char(10),
+	i0 char(10),i1 char(10),i2 char(10),i3 char(10),i4 char(10),
+	i5 char(10),i6 char(10),i7 char(10),i8 char(10),i9 char(10),
+	j0 char(10),j1 char(10),j2 char(10),j3 char(10),j4 char(10),
+	j5 char(10),j6 char(10),j7 char(10),j8 char(10),j9 char(10))
+
+[continue]
+    -> 
+
+ERROR : Too many fields in table (75 Max)
+
+
+mSQL >     ->     ->     ->     -> 
+Query buffer
+------------
+insert into test values ('foo',10)
+
+[continue]
+    -> 
+
+ERROR : No value specified for field 'phone'
+
+
+mSQL >     ->     -> 
+Query buffer
+------------
+select test1.name test2.foo from test1
+
+[continue]
+    -> 
+
+ERROR : syntax error near "test2"
+
+
+mSQL > 
+Bye!
+

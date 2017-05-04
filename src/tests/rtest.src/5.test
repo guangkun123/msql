@@ -1,0 +1,16 @@
+# 
+# Test the delete code
+#
+
+delete from test where user = 'dummy7'\p\g
+select * from test\p\g
+
+delete from test where age = 92\p\g
+select * from test\p\g
+
+delete from test where age > 80 and age < 95\p\g
+select * from test\p\g
+
+delete from test where user like  '%umm%'\p\g
+select * from test\p\g
+

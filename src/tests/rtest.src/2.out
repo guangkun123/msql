@@ -1,0 +1,192 @@
+
+Welcome to the miniSQL monitor.  Type \h for help.
+
+
+mSQL >     -> 
+Query buffer
+------------
+
+insert into test(user,age,phone)values( 'Bambi',26,'(075) 951450')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'paulp',25,'(075) 951412')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'fred',31,'(075) 951431')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'dummy1',99,'99')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'dummy2',97,'97')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'dummy3',95,'95')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'dummy4',93,'93')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'dummy5',91,'91')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'dummy6',89,'89')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'dummy7',87,'87')
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL >     -> 
+Query buffer
+------------
+insert into test(user,age,phone)values( 'fred',31,'(075) 951431')
+[continue]
+    -> 
+
+ERROR : Non unique key value in field 'user'
+
+
+mSQL > 
+Query buffer
+------------
+insert into test(user,age,phone)values( NULL,31,'(075) 951431')
+[continue]
+    -> 
+
+ERROR : Field "user" cannot be null
+
+
+mSQL >     -> 
+Query buffer
+------------
+insert into test2 (user, fullname) values ('paulp','Paul Pyyvaara') 
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test2 (user, fullname) values ('Bambi','David J. Hughes') 
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test2 (user, fullname) values ('fred','Fred O\'Niell') 
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL > 
+Query buffer
+------------
+insert into test2 (user, fullname) values (NULL,'Nobody') 
+[continue]
+    -> 
+
+ERROR : Field "user" cannot be null
+
+
+mSQL > 
+Query buffer
+------------
+insert into test2 (user, fullname) values ('Nobody',NULL) 
+[continue]
+    -> 
+Query OK.
+
+
+
+
+mSQL >     ->     -> 
+Bye!
+
