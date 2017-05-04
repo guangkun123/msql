@@ -1,0 +1,1 @@
+../../..//src/makegen/object.mm

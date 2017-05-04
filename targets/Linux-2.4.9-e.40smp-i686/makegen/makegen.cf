@@ -1,0 +1,10 @@
+# Generated automatically from makegen.cf.in by configure.
+#
+# General configuration guff for Makegen
+#
+
+ranlib="ranlib"
+cpp="gcc -E"
+chmod="chmod"
+chgrp="chgrp"
+chown="chown"
